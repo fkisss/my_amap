@@ -1412,18 +1412,24 @@
                 let lat = parseFloat(btn.dataset.lat);
                 queryElevation(lng, lat);
             }
-            if (e.target.classList.contains('fav-push-btn-info-window')) {
-                const btn = e.target;
-                let lng = parseFloat(btn.dataset.lng);
-                let lat = parseFloat(btn.dataset.lat);
-                let name = btn.dataset.name;
-                // 构造高德地图唤起URI
-                let amapUrl = `amapuri://viewMap?sourceApplication=amap&lat=${lat}&lon=${lng}&poiname=${encodeURIComponent(name||'收藏点')}`;
-                // 尝试唤起高德地图App
-                window.location.href = amapUrl;
-                // 也可弹窗提示
-                // alert('请在手机浏览器中点击此按钮，即可推送到高德地图App');
-            }
+if (e.target.classList.contains('fav-push-btn-info-window')) {
+    const btn = e.target;
+    let lng = parseFloat(btn.dataset.lng);
+    let lat = parseFloat(btn.dataset.lat);
+    let name = btn.dataset.name;
+    // 判断是否为移动端
+    let isMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent);
+    if (isMobile) {
+        // 构造高德地图唤起URI
+        let amapUrl = `amapuri://viewMap?sourceApplication=amap&lat=${lat}&lon=${lng}&poiname=${encodeURIComponent(name||'收藏点')}`;
+        window.location.href = amapUrl;
+    } else {
+        // 桌面端，跳转到高德网页版地图
+        let amapWebUrl = `https://www.amap.com/search?query=${encodeURIComponent(name||'收藏点')}&center=${lng},${lat}&zoom=16`;
+        window.open(amapWebUrl, '_blank');
+    }
+}
+            
         });
 
         // 页面加载时自动加载收藏点，并合并到localStorage
