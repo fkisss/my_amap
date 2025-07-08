@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <link rel="icon" href="amap.ico" type="image/x-icon">
+    <title>高德专享JSAPI地图</title>
+    <style>
+        html, body, #container {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+        }
+        /* 统一主容器样式 */
+        #mainContainer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10000;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #ddd;
+            min-width: 320px;
+            max-width: 340px;
+            width: 320px;
+            box-sizing: border-box;
+        }
+        /* 搜索框样式 */
+        #searchBox {
+            padding: 10px 12px 10px 12px; /* 稍微调高 */
+            display: flex;
+            align-items: center;
+            /* border-bottom: 1px solid #eee;  */
+            justify-content: space-between; /* 搜索按钮靠右 */
+        }
+        
+        #searchBox input {
+            border: none;
+            padding: 6px 10px;
+            width: 180px;
+            margin-right: 0;
+            box-sizing: border-box;
+            font-size: 15px;
+            outline: none;
+            flex: 1;
+        }
+        
+        #searchBtn {
+            background-color: #0078ff;
+            color: #fff;
+            min-width: 56px;
+            padding: 7px 0;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 15px;
+            transition: background-color 0.3s ease;
+            margin-left: 12px;
+            text-align: center;
+            line-height: 1.2;
+        }
+        
+        #searchBtn:hover {
+            background-color: #0056b3;
+        }
+        
+        /* 搜索结果面板样式 */
+        #searchResultsPanel {
+            padding: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            border-top: 1px solid #eee; 
+        }
+        
+        #searchResultsList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-width: 320px;
+            word-break: break-all;
+            overflow-wrap: break-word;
+        }
+        #searchResultsList li {
+            padding-left: 0;
+            border-left: 3px solid transparent;
+        }
+        #searchResultsList .selected-search-result {
+            background-color: #e6f7ff;
+            border-left: 3px solid #1890ff;
+        }
+        
+        /* 导航面板样式 */
+        #planForm {
+            padding: 16px 15px 15px 15px;
+            position: relative;
+            border-top: 1px solid #eee; 
+        }
+        /* 搜索结果列表项高亮样式 */
+        #searchResultsList .selected-search-result {
+            background-color: #e6f7ff;
+            border-left: 3px solid #1890ff;
+        }
+        /* 优化导航面板内部元素间距 */
+        #planForm .line_serch_ipt label {
+            width: 25px;
+            text-align: right;
+            margin-right: 5px;
+            color: #555;
+            font-size: 14px;
+        }
+        #planForm input {
+            width: calc(100% - 30px);
+            padding: 6px 8px;
+            border: 1px solid #dcdcdc;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+        }
+        /* 让导航面板与搜索面板风格一致 */
+        #planForm .dir_submit, #planForm .line-search-clear {
+            border-radius: 5px;
+            font-size: 14px;
+            display: inline-block;
+            min-width: 80px;
+            padding: 7px 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        #planForm .line-search-clear {
+            color: #0078ff;
+            background: #fff;
+            border: 1.5px solid #0078ff;
+        }
+        #planForm .line-search-clear:hover {
+            background-color: #e6f0ff;
+            color: #0056b3;
+        }
+        #planForm .dir_submit {
+            background-color: #0078ff;
+            color: #fff;
+            border: 1.5px solid #0078ff;
+        }
+        #planForm .dir_submit:hover {
+            background-color: #0056b3;
+            color: #fff;
+        }
+        /* 让关闭按钮风格一致 */
+        #planForm #dir_close {
+            top: 8px;
+            right: 12px;
+            color: #888;
+            font-size: 18px;
+        }
+        #planForm .current {
+            background: #0078ff;
+            color: #fff;
+            border-radius: 5px;
+            padding: 5px 0; /* 减小内边距 */
+        }
+        #planForm .palntype_tab {
+            cursor: pointer;
+            transition: background 0.3s ease, color 0.3s ease;
+            font-size: 14px; /* 调整字体大小 */
+        }
+        #planForm .palntype_tab:hover:not(.current) {
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        #planForm .line-search-submit {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px !important; /* 减小上边距 */
+        }
+        #trafficTab {
+            margin-bottom: 10px; /* 减小底部间距 */
+        }
+        #navInfo {
+            margin-top: 8px; /* 保持与上面元素的间距 */
+            font-size: 13px;
+            color: #444;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-around;
+            align-items: center; /* 垂直居中 */
+        }
+        #navTime, #navDistance {
+            margin-top: 0; /* 移除单独的上边距 */
+            /* font-size和color等属性已从#navInfo继承或在行内样式中定义 */
+            /* 如果需要，可以在这里为每个span单独设置样式 */
+        }
+        /* 恢复导航tab按钮宽度为flex:1 */
+        #trafficTab > li {
+            flex: 1;
+        }
+        #planForm .dir_submit, #planForm .line-search-clear {
+            text-decoration: none;
+            text-align: center;
+        }
+        
+        /* 收藏面板按钮悬停效果 */
+        #favExportBtn:hover {
+            background-color: #0056b3 !important;
+        }
+        
+        #favImportInput:hover + label,
+        label[for="favImportInput"]:hover {
+            background-color: #e6f0ff !important;
+            color: #0056b3 !important;
+        }
+        
+        #favClearAllBtn:hover {
+            background-color: #e6f0ff !important;
+            color: #0056b3 !important;
+        }
+        
+        /* 收藏管理按钮悬停效果 */
+        #favManageBtn:hover {
+            background-color: #f5f5f5 !important;
+            border-color: #999 !important;
+        }
+        /* 在全局样式中添加如下CSS */
+        .amap-info-content.amap-info-outer {
+          min-width: 216px !important;
+        }
+        /* 强制工具面板宽度不受外部影响 */
+        #toolsContainer {
+            width: 320px !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            box-sizing: border-box !important;
+            padding: 0 !important;
+        }
+        #favPanel {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            padding: 10px !important;
+        }
+        
+        /* 标签三态样式 */
+        .tag-show {
+            background: #0078ff !important;
+            color: #fff !important;
+            border: 1px solid #0078ff !important;
+        }
+        .tag-default {
+            background: #fff !important;
+            color: #0078ff !important;
+            border: 1.5px solid #0078ff !important;
+        }
+        .tag-hide {
+            background: #f5f5f5 !important;
+            color: #999 !important;
+            border: 1px solid #ddd !important;
+            text-decoration: line-through !important;
+        }
+        .tag-clickable {
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+        }
+        .tag-clickable:hover {
+            opacity: 0.8 !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="mainContainer">
+        <div id="searchBox">
+          <input type="text" id="searchInput" placeholder="请输入要搜索的位置">
+          <a href="javascript:void(0)" id="searchBtn">搜索</a>
+        </div>
+        <div id="searchResultsPanel" style="display:none;">
+          <ul id="searchResultsList"></ul>
+        </div>
+        <div id="planForm" style="display:none;">
+      <ul class="tabs dir_tab col3" id="trafficTab" style="display:flex;list-style:none;padding:0;margin:0 0 10px 0;">
+        <li style="flex:1;"><a id="carTab" class="palntype_tab current" href="javascript:void(0)" data-type="car" style="display:block;text-align:center;padding:6px 0;">驾车</a></li>
+        <li style="flex:1;"><a id="busTab" class="palntype_tab" href="javascript:void(0)" data-type="bus" style="display:block;text-align:center;padding:6px 0;">公交</a></li>
+        <li style="flex:1;"><a id="walkTab" class="palntype_tab" href="javascript:void(0)" data-type="walk" style="display:block;text-align:center;padding:6px 0;">步行</a></li>
+      </ul>
+      <i id="dir_close" style="position:absolute;top:8px;right:12px;cursor:pointer;font-size:18px;color:#888;">✕</i>
+      <div class="line-search">
+        <div class="line-search-form">
+          <p class="line_serch_ipt line-search-from active">
+            <label>起 </label>
+            <input type="text" class="dir_ipt" id="dir_from_ipt" dirtype="from" placeholder="请输入起点或在地图上点选" autocomplete="off">
+          </p>
+          <p class="line_serch_ipt line-search-to active">
+            <label>终 </label>
+            <input type="text" class="dir_ipt" id="dir_to_ipt" dirtype="to" placeholder="请输入终点或在地图上点选" autocomplete="off">
+          </p>
+          <p class="line-search-submit" style="margin-top:10px;">
+            <a href="javascript:void(0)" class="line-search-clear" id="clearRouteBtn" style="margin-right:10px;">清除路线</a>
+            <a href="javascript:void(0)" class="dir_submit" id="planRouteBtn">开始导航</a>
+          </p>
+          <div style="border-bottom: 1px solid #eee; margin: 10px 0;"></div>
+          <div id="navInfo" style="margin-top:8px;font-size:13px;color:#444;font-weight:bold;text-align:center;display:flex;justify-content:space-around;align-items:center;">
+            <span id="navTime">时间：--</span>
+            <span id="navDistance">距离：--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+    <div id="container"></div>
+    <!-- 工具按钮及工具面板 -->
+    <button id="toolsBtn" title="工具按钮" style="position:absolute;right:20px;top:20px;z-index:9000;background:#fff;border:1px solid #ddd;color:#666;font-weight:bold;border-radius:12px;padding:6px 6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);cursor:pointer;display:flex;align-items:center;justify-content:center;width:36px;height:36px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0078ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:0px;margin-top:0px;display:block;margin:auto;">
+        <path d="M22.7 19.3l-6.4-6.4c1.1-2.1.7-4.7-1.1-6.4-1.8-1.8-4.6-2.1-6.7-.7l3.2 3.2-2.1 2.1-3.2-3.2c-1.4 2.1-1.1 4.9.7 6.7 1.7 1.7 4.3 2.1 6.4 1.1l6.4 6.4c.4.4 1 .4 1.4 0l1.4-1.4c.4-.4.4-1 0-1.4z"></path>
+      </svg>
+    </button>
+    <div id="toolsContainer" style="display:none;position:absolute;right:20px;top:60px;z-index:10001;background:#fff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:1px solid #ddd;overflow:hidden;">
+      <div id="mapToolsRow" style="display:flex;gap:0;">
+        <button id="satelliteToggleBtn" style="flex:1 1 0;width:auto;background:#fff;border:none;color:#0078ff;font-weight:bold;border-radius:12px 0 0 0;padding:10px 0;box-shadow:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;border-bottom:1px solid #eee;border-right:1px solid #eee;">卫星</button>
+        <button id="trafficToggleBtn" style="flex:1 1 0;width:auto;background:#fff;border:none;color:#0078ff;font-weight:bold;border-radius:0 12px 0 0;padding:10px 0;box-shadow:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;border-bottom:1px solid #eee;">路况</button>
+      </div>
+      <div id="favPanel" style="display:block;background:#fff;border-radius:0 0 12px 12px;box-shadow:none;border:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:10px;">
+          <div id="favTagsBar" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;"></div>
+          <!-- 右上角关闭按钮已移除 -->
+        </div>
+        <ul id="favList" style="list-style:none;padding:0;margin:0;max-height:220px;overflow-y:auto;"></ul>
+        <div id="favEmptyTip" style="color:#aaa;text-align:center;margin-top:10px;display:none;">暂无收藏点</div>
+        <div style="margin-top:10px;display:flex;gap:8px;">
+          <button id="favExportBtn" style="flex:1;background:#0078ff;color:#fff;border:none;border-radius:3px;padding:4px 0;font-weight:bold;cursor:pointer;transition:background-color 0.3s ease;font-size:13px;min-width:0;">导出JSON</button>
+          <label for="favImportInput" style="flex:1;background:#fff;color:#0078ff;border:1px solid #0078ff;border-radius:3px;padding:4px 0;font-weight:bold;cursor:pointer;text-align:center;transition:background-color 0.3s ease;font-size:13px;min-width:0;">导入JSON<input id="favImportInput" type="file" accept="application/json" style="display:none;"></label>
+          <button id="favClearAllBtn" style="flex:1;background:#fff;color:#0078ff;border:1px solid #0078ff;border-radius:3px;padding:4px 0;font-weight:bold;cursor:pointer;transition:background-color 0.3s ease;font-size:13px;min-width:0;">全部删除</button>
+        </div>
+      </div>
+    </div>
+    <!-- 页面底部中间增加海拔信息显示区 -->
+    <div id="elevationInfo" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;background:#fff;border-radius:8px;box-shadow:0 2px 8px #2196f333;padding:8px 24px;font-size:15px;color:#0078ff;display:none;pointer-events:auto;user-select:text;cursor:text;"></div>
+    <script type="text/javascript">
+        // 请将 '您复制的"安全密钥"' 替换为您获取到的真实值
+        window._AMapSecurityConfig = {
+            securityJsCode:'1be04232160e25ebdc98e536461cc88e',
+        }
+    </script>
+    <!-- 请将 '您的APIKey' 替换为您在高德开放平台获取到的真实API Key -->
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=4d3fcfe3d1d890db9be898228864b671&plugin=AMap.Marker,AMap.Driving,AMap.Walking,AMap.Transfer,AMap.Geocoder,AMap.PlaceSearch"></script>
+    <script>
+      // 多条路线配置
+      var xmlFileList = [
+        { path: 'ditu/chuanzangnanxian.xml', color: '#FF0000', weight: 2 },
+        { path: 'ditu/317.xml', color: '#FF0000', weight: 2 },
+        { path: 'ditu/genienanxian.xml', color: '#00AA00', weight: 2 },
+        { path: 'ditu/ganbaixian.xml', color: '#00AA00', weight: 2 },
+        { path: 'ditu/dandaoxian1.xml', color: '#00AA00', weight: 2 },
+        { path: 'ditu/dandaoxian2.xml', color: '#00AA00', weight: 2 },
+        // { path: 'ditu/other.xml', color: '#FF0000', weight: 4 }, // 可继续添加
+      ];
+      // 景点文件
+      var scenicFilePath = 'ditu/jingdian.md';
+      // 景点图标颜色，可选 'blue' 'red' 'green' 'yellow'，或自定义图片URL
+      var scenicIconColor = 'blue';
+      // 景点名称显示位置，可选 'top' 或 'right'
+      var labelDirection = 'right';
+
+      // 导航路线粗细
+      var navRouteWeight = 3; // 默认粗细为 6
+
+      // 预设导航路线数组
+      // 格式：{ start: [经度, 纬度], end: [经度, 纬度], type: 'car'|'walk'|'bus' }
+      var predefinedRoutes = [
+      // { start: [103.605399,30.975989], end: [103.918282,33.267688], type: 'car' },
+      // { start: [103.605399,30.975989], end: [102.768601,30.978505], type: 'car' },
+      { start: [103.180543,34.644912], end: [103.195924,34.235838], type: 'car' }
+          // 示例：从一个点到另一个点的驾车路线
+          // { start: [103.82935, 36.05942], end: [102.491446, 33.377610], type: 'car' },
+          // 示例：另一条步行路线
+          // { start: [103.0, 35.0], end: [104.0, 36.0], type: 'walk' }
+      ];
+
+    </script>
+    <script type="text/javascript">
+        var map = new AMap.Map('container', {
+            zoom:8, // 初始化地图级别
+            center:[102.491446,33.377610]
+            // 移除了 features: ['bg', 'road', 'building']，让地图显示默认所有要素，包括地点名称
+        });
+
+        // ========== 右键菜单+面板互通完整路径规划 ========== //
+        var navStart = null, navEnd = null, navStartMarker = null, navEndMarker = null, allNavRoutes = [], navType = 'car';
+        var navWaypoints = []; // 新增：途径点数组
+        var navWaypointMarkers = []; // 新增：途径点标记数组
+        var lastRightClickLngLat = null;
+        // 右键菜单
+        let contextMenu = new AMap.ContextMenu();
+        contextMenu.addItem("设为起点", function() {
+          if (navStartMarker) map.remove(navStartMarker);
+          navStart = lastRightClickLngLat;
+          navStartMarker = new AMap.Marker({ position: navStart, map: map, title: '起点', icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png', anchor: 'bottom-center' });
+          document.getElementById('dir_from_ipt').value = `${navStart.lng.toFixed(6)},${navStart.lat.toFixed(6)}`;
+          document.getElementById('planForm').style.display = 'block';
+          contextMenu.close();
+        }, 0);
+        contextMenu.addItem("设为终点", function() {
+          if (navEndMarker) map.remove(navEndMarker);
+          navEnd = lastRightClickLngLat;
+          navEndMarker = new AMap.Marker({ position: navEnd, map: map, title: '终点', icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png', anchor: 'bottom-center' });
+          document.getElementById('dir_to_ipt').value = `${navEnd.lng.toFixed(6)},${navEnd.lat.toFixed(6)}`;
+          document.getElementById('planForm').style.display = 'block';
+          contextMenu.close();
+        }, 1);
+        contextMenu.addItem("设途经点", function() {
+          if (lastRightClickLngLat) {
+            let waypointMarker = new AMap.Marker({
+              position: lastRightClickLngLat,
+              map: map,
+              title: `途径点${navWaypoints.length + 1}`,
+              // 使用绿色空心圆圈作为途经点图标
+              content: '<div style="width: 10px; height: 10px; border: 2px solid #00B26A; border-radius: 50%; background-color: transparent;"></div>', // 绿色边框，透明背景
+              offset: new AMap.Pixel(-6, -6), // 调整偏移量使中心对齐
+              zIndex: 90 // 增加zIndex以确保图标显示在顶部
+            });
+            waypointMarker.setMap(map); // 显式地将标记添加到地图上
+            navWaypoints.push(lastRightClickLngLat);
+            navWaypointMarkers.push(waypointMarker);
+          }
+          contextMenu.close();
+        }, 2);
+        contextMenu.addItem("路径规划", function() {
+          if (navStart && navEnd) {
+            planRoute();
+          } else {
+            alert('请先设置起点和终点');
+          }
+          contextMenu.close();
+        }, 3);
+        contextMenu.addItem("加入收藏", function() {
+          if (lastRightClickLngLat) {
+            let lng = lastRightClickLngLat.lng;
+            let lat = lastRightClickLngLat.lat;
+            let name = prompt('请输入收藏点名称：', '');
+            if (name !== null) {
+              let tag = prompt('请输入标签（可选，多个标签用逗号分隔）：', '');
+              let remark = prompt('请输入备注（可选）：', '');
+              addFav({lng, lat, name, address: '', remark: remark || '', tag: tag || '', time: Date.now()});
+              alert('已收藏！');
+            }
+          }
+          contextMenu.close();
+        }, 4);
+        contextMenu.addItem("查询海拔", function() {
+          if (lastRightClickLngLat) {
+            queryElevation(lastRightClickLngLat.lng, lastRightClickLngLat.lat);
+          }
+          contextMenu.close();
+        }, 5);
+        map.on('rightclick', function(e) {
+          lastRightClickLngLat = e.lnglat;
+          contextMenu.open(map, e.lnglat);
+        });
+        // 面板"开始导航"按钮
+        document.getElementById('planRouteBtn').onclick = function() {
+          let fromVal = document.getElementById('dir_from_ipt').value.trim();
+          let toVal = document.getElementById('dir_to_ipt').value.trim();
+          getLngLat(fromVal, function(start) {
+            getLngLat(toVal, function(end) {
+              if (!start || !end) {
+                alert('请设置起点和终点');
+                return;
+              }
+              navStart = start;
+              navEnd = end;
+              planRoute();
+            });
+          });
+        };
+        // 经纬度/地名转坐标
+        function getLngLat(val, cb) {
+          // 优先处理"名称 (lng,lat)"格式
+          let match = val.match(/\(([-\d.]+),\s*([-\d.]+)\)$/);
+          if (match) {
+            cb(new AMap.LngLat(parseFloat(match[1]), parseFloat(match[2])));
+            return;
+          }
+          if (/^\s*-?\d+\.?\d*\s*,\s*-?\d+\.?\d*\s*$/.test(val)) {
+            let arr = val.split(',');
+            cb(new AMap.LngLat(parseFloat(arr[0]), parseFloat(arr[1])));
+          } else {
+            let geocoder = new AMap.Geocoder();
+            geocoder.getLocation(val, function(status, result) {
+              if (status === 'complete' && result.geocodes.length) {
+                cb(result.geocodes[0].location);
+              } else {
+                cb(null);
+              }
+            });
+          }
+        }
+        // 路径规划函数
+        function planRoute() {
+          if (!navStart || !navEnd) {
+            alert('请先设置起点和终点');
+            return;
+          }
+          if (!(navStart instanceof AMap.LngLat)) navStart = new AMap.LngLat(navStart.lng, navStart.lat);
+          if (!(navEnd instanceof AMap.LngLat)) navEnd = new AMap.LngLat(navEnd.lng, navEnd.lat);
+          clearCustomMarkers(); // 规划时立即移除自定义Marker
+          navType = document.querySelector('#trafficTab .current').dataset.type;
+          console.log('planRoute called', navStart, navEnd, navType);
+          let currentNavRouteInstance;
+          const polylineOpts = {
+              strokeWeight: navRouteWeight // 应用自定义粗细
+          };
+
+          let waypointLngLats = navWaypoints.map(p => new AMap.LngLat(p.lng, p.lat)); // 将途径点转换为AMap.LngLat对象
+
+          if (navType === 'car') {
+            currentNavRouteInstance = new AMap.Driving({ map: map, polylineOptions: polylineOpts });
+            currentNavRouteInstance.search(navStart, navEnd, { waypoints: waypointLngLats }, function(status, result) {
+              if (status !== 'complete') {
+                alert('驾车路径规划失败，请检查起点、终点及途径点！');
+              } else {
+                  allNavRoutes.push(currentNavRouteInstance);
+                  // 显示导航时间和距离
+                  let totalTime = result.routes[0].time;
+                  let totalDistance = result.routes[0].distance;
+                  document.getElementById('navTime').innerText = `时间：${formatTime(totalTime)}`;
+                  document.getElementById('navDistance').innerText = `距离：${formatDistance(totalDistance)}`;
+              }
+            });
+          } else if (navType === 'walk') {
+            currentNavRouteInstance = new AMap.Walking({ map: map, polylineOptions: polylineOpts });
+            currentNavRouteInstance.search(navStart, navEnd, function(status, result) {
+              if (status !== 'complete') {
+                alert('步行路径规划失败，请检查起点和终点！');
+              } else {
+                  allNavRoutes.push(currentNavRouteInstance);
+                  // 显示导航时间和距离
+                  let totalTime = result.routes[0].time;
+                  let totalDistance = result.routes[0].distance;
+                  document.getElementById('navTime').innerText = `时间：${formatTime(totalTime)}`;
+                  document.getElementById('navDistance').innerText = `距离：${formatDistance(totalDistance)}`;
+              }
+            });
+          } else if (navType === 'bus') {
+            currentNavRouteInstance = new AMap.Transfer({ map: map, city: '全国', polylineOptions: polylineOpts });
+            // 公交路线不支持途径点
+            currentNavRouteInstance.search(navStart, navEnd, function(status, result) {
+              if (status !== 'complete') {
+                alert('公交路径规划失败，请检查起点和终点！');
+              } else {
+                  allNavRoutes.push(currentNavRouteInstance);
+                  // 显示导航时间和距离
+                  let totalTime = 0;
+                  let totalDistance = 0;
+                  result.plans[0].segments.forEach(segment => {
+                      totalTime += segment.time;
+                      totalDistance += segment.distance;
+                  });
+                  document.getElementById('navTime').innerText = `时间：${formatTime(totalTime)}`;
+                  document.getElementById('navDistance').innerText = `距离：${formatDistance(totalDistance)}`;
+              }
+            });
+          }
+        }
+        
+        // 辅助函数：格式化时间
+        function formatTime(seconds) {
+            let hours = Math.floor(seconds / 3600);
+            let minutes = Math.floor((seconds % 3600) / 60);
+            let result = '';
+            if (hours > 0) {
+                result += `${hours}小时`;
+            }
+            if (minutes > 0) {
+                result += `${minutes}分钟`;
+            }
+            if (result === '') {
+                result = `${seconds}秒`;
+            }
+            return result;
+        }
+
+        // 辅助函数：格式化距离
+        function formatDistance(meters) {
+            if (meters >= 1000) {
+                return `${(meters / 1000).toFixed(1)}公里`;
+            } else {
+                return `${meters.toFixed(0)}米`;
+            }
+        }
+
+        // 新增函数：清除自定义的起点/终点Marker
+        function clearCustomMarkers() {
+          if (navStartMarker) { map.remove(navStartMarker); navStartMarker = null; }
+          if (navEndMarker) { map.remove(navEndMarker); navEndMarker = null; }
+        }
+
+        // 清除路线 (已更名为 clearAllNavigationData)
+        document.getElementById('clearRouteBtn').onclick = clearAllNavigationData;
+        function clearAllNavigationData() {
+          clearCustomMarkers(); // 清除自定义起点/终点Marker
+
+          // 清除所有途径点标记
+          navWaypointMarkers.forEach(marker => {
+            map.remove(marker);
+          });
+          navWaypointMarkers = []; // 清空途径点标记数组
+          navWaypoints = []; // 清空途径点数组
+
+          // 只清除allNavRoutes数组中的最后一条路线
+          if (allNavRoutes.length > 0) {
+              const lastRoute = allNavRoutes.pop(); // 获取并移除最后一条路线实例
+              if (lastRoute) lastRoute.clear(); // 清除地图上的该路线
+          }
+
+          // 只有当allNavRoutes数组为空时，才清空起点终点变量和输入框
+          if (allNavRoutes.length === 0) {
+              navStart = navEnd = null;
+              document.getElementById('dir_from_ipt').value = '';
+              document.getElementById('dir_to_ipt').value = '';
+              document.getElementById('navTime').innerText = '时间：--';
+              document.getElementById('navDistance').innerText = '距离：--';
+          }
+          searchResultsList.innerHTML = ''; // 清空搜索结果列表
+          Array.from(searchResultsList.children).forEach(li => {
+              li.classList.remove('selected-search-result');
+          });
+          searchResultsPanel.style.display = 'none'; // 隐藏搜索结果面板
+          adjustPanelsPosition(); // 调整导航面板位置，使其回到初始位
+        }
+        // ========== 右键菜单+面板互通完整路径规划 END ========== //
+
+        // ========== 动态加载多条路线 ========== //
+        xmlFileList.forEach(routeConf => {
+          fetch(routeConf.path)
+            .then(response => response.text())
+            .then(xmlText => {
+              const parser = new DOMParser();
+              const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+              const polylineNodes = xmlDoc.querySelectorAll("step > polyline");
+              let allPoints = [];
+              polylineNodes.forEach(node => {
+                const points = node.textContent.split(";").map(str => {
+                  const [lng, lat] = str.split(",");
+                  return [parseFloat(lng), parseFloat(lat)];
+                });
+                allPoints = allPoints.concat(points);
+              });
+              if (allPoints.length > 1) {
+                new AMap.Polyline({
+  path: allPoints,
+  strokeColor: routeConf.color,
+  strokeWeight: routeConf.weight,
+  strokeOpacity: 0.8,
+  lineJoin: 'round',   // 拐角圆润
+  lineCap: 'round',    // 端点圆润
+  map: map
+});
+              }
+            });
+        });
+        // ========== 动态加载多条路线 END ========== //
+
+        // ========== 动态加载景点 ========== //
+        fetch(scenicFilePath)
+          .then(response => response.text())
+          .then(text => {
+            const points = text.split('\n').map(line => line.trim().replace(/，/g, ',')).filter(line => line && line.includes(','));
+            points.forEach(line => {
+              const [name, lng, lat] = line.split(',').map(s => s.trim());
+              if(name && lng && lat) {
+                // 根据labelDirection设置offset
+                let labelOffset = new AMap.Pixel(0, 0);
+                // 颜色滤镜函数（针对高德默认蓝色水滴图标，使用hue-rotate实现色调变换）
+                function getAmapMarkerFilter(color) {
+                  switch(color) {
+                    case 'red': return 'hue-rotate(-120deg)';
+                    case 'green': return 'hue-rotate(90deg)';
+                    case 'yellow': return 'hue-rotate(50deg)';
+                    case 'blue':
+                    default: return 'hue-rotate(0deg)';
+                  }
+                }
+                // 使用content+img+filter渲染高德默认水滴图标变色
+                new AMap.Marker({
+                  position: new AMap.LngLat(parseFloat(lng), parseFloat(lat)),
+                  map: map,
+                  title: '', // 移除poi.name，避免默认工具提示
+                  anchor: 'bottom-center',
+                  zIndex: 100,
+                  content: `<img src='https://webapi.amap.com/theme/v1.3/markers/n/mark_bs.png' style='width:19px;height:33px;filter:${getAmapMarkerFilter(scenicIconColor)};'>`,
+                  label: {
+                    content: name,
+                    direction: labelDirection,
+                    offset: labelOffset,
+                    style: {
+                      'margin-left': '6px',
+                      'background': '#fff',
+                      'color': '#555',
+                      'border': '1px solid #2196f3',
+                      'font-size': '12px',
+                      'padding': '1px 8px',
+                      'border-radius': '3px',
+                      'box-shadow': '0 1px 4px #2196F333',
+                      'max-width': '120px',
+                      'white-space': 'nowrap',
+                      'overflow': 'hidden',
+                      'text-overflow': 'ellipsis',
+                      'user-select': 'none',
+                      'cursor': 'default',
+                      'display': 'inline-block'
+                    }
+                  },
+                });
+              }
+            });
+          });
+        // ========== 动态加载景点 END ========== //
+
+        // ========== 官网风格导航面板交互 ========== //
+        // 显示面板（可改为按钮触发，这里页面加载后自动显示）
+        document.getElementById('planForm').style.display = 'none';
+        // 切换出行方式
+        document.querySelectorAll('#trafficTab .palntype_tab').forEach(tab => {
+          tab.onclick = function() {
+            document.querySelectorAll('#trafficTab .palntype_tab').forEach(t => t.classList.remove('current'));
+            this.classList.add('current');
+            navType = this.dataset.type;
+          }
+        });
+        // 地图点击选点
+        let selectType = null;
+        document.getElementById('dir_from_ipt').onclick = function() { selectType = 'from'; };
+        document.getElementById('dir_to_ipt').onclick = function() { selectType = 'to'; };
+        map.on('click', function(e) {
+          if (!selectType) return;
+          if (selectType === 'from') {
+            if (navStartMarker) map.remove(navStartMarker);
+            navStart = e.lnglat;
+            navStartMarker = new AMap.Marker({ position: navStart, map: map, title: '起点', icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png', anchor: 'bottom-center' });
+            document.getElementById('dir_from_ipt').value = `${e.lnglat.lng.toFixed(6)},${e.lnglat.lat.toFixed(6)}`;
+            document.getElementById('planForm').style.display = 'block';
+          } else if (selectType === 'to') {
+            if (navEndMarker) map.remove(navEndMarker);
+            navEnd = e.lnglat;
+            navEndMarker = new AMap.Marker({ position: navEnd, map: map, title: '终点', icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png', anchor: 'bottom-center' });
+            document.getElementById('dir_to_ipt').value = `${e.lnglat.lng.toFixed(6)},${e.lnglat.lat.toFixed(6)}`;
+            document.getElementById('planForm').style.display = 'block';
+          }
+          selectType = null;
+        });
+        // 关闭面板
+        document.getElementById('dir_close').onclick = function() {
+          document.getElementById('planForm').style.display = 'none';
+        };
+        // ========== 官网风格导航面板交互 END ========== //
+
+        // 加载预设导航路线
+        function loadPredefinedRoutes() {
+            predefinedRoutes.forEach(route => {
+                if (route.start && route.end && route.type) {
+                    // 将数组坐标转换为 AMap.LngLat 对象
+                    navStart = new AMap.LngLat(route.start[0], route.start[1]);
+                    navEnd = new AMap.LngLat(route.end[0], route.end[1]);
+                    navType = route.type; // 设置导航类型
+                    planRoute(); // 调用路径规划函数
+                }
+            });
+            // 自动加载后，清空起点终点输入框，避免残留
+            document.getElementById('dir_from_ipt').value = '';
+            document.getElementById('dir_to_ipt').value = '';
+            navStart = null;
+            navEnd = null;
+        }
+
+        // 在地图加载完成后自动加载预设路线
+        map.on('complete', function() {
+            loadPredefinedRoutes();
+        });
+
+        // ========== 位置搜索功能 START ========== //
+        var searchInput = document.getElementById('searchInput');
+        var searchBtn = document.getElementById('searchBtn');
+        // 替换 AMap.Geocoder 为 AMap.PlaceSearch，用于多条记录搜索
+        var placeSearch = new AMap.PlaceSearch(); // 不带map和panel参数，阻止自动渲染
+
+        var allSearchResultsMarkers = []; // 全局数组，用于存储所有搜索结果的Marker
+        var currentInfoWindow = null; // 用于存储当前打开的InfoWindow实例
+        var sharedInfoWindow = new AMap.InfoWindow({
+            offset: new AMap.Pixel(0, -30), // InfoWindow相对于marker的偏移量
+            zIndex: 9999 // 设置一个非常高的zIndex，确保我们的自定义InfoWindow总是在最顶部
+        }); // 新增：全局共享的信息窗体实例
+
+        function performSearch() {
+            var keyword = searchInput.value.trim();
+            if (keyword) {
+                // 清空之前的搜索结果列表和标记，并确保面板初始隐藏
+                searchResultsList.innerHTML = '';
+                searchResultsPanel.style.display = 'none';
+
+                // 清除地图上所有的搜索结果标记
+                if (allSearchResultsMarkers.length > 0) {
+                    map.remove(allSearchResultsMarkers);
+                    allSearchResultsMarkers = [];
+                }
+                // 关闭可能打开的InfoWindow
+                if (currentInfoWindow) {
+                    currentInfoWindow.close();
+                    currentInfoWindow = null; // 清除引用
+                }
+                // 关闭全局共享的InfoWindow
+                sharedInfoWindow.close();
+
+                // 使用 PlaceSearch 进行搜索
+                placeSearch.search(keyword, function(status, result) {
+                    if (status === 'complete' && result.poiList && result.poiList.pois.length > 0) {
+                        // 明确清除PlaceSearch的默认显示 *在搜索完成之后*，避免其干扰
+                        placeSearch.clear();
+
+                        var pois = result.poiList.pois;
+                        var bounds = new AMap.Bounds(); // 用于调整地图视野以包含所有POI
+
+                        pois.forEach((poi, index) => {
+                            var lnglat = poi.location;
+                            bounds.extend(lnglat); // 扩展地图视野
+
+                            // 创建地图标记
+                            let marker = new AMap.Marker({
+                                position: lnglat,
+                                // map: map, // 移除此处对map的直接设置，稍后手动设置
+                                title: '', // 移除poi.name，避免默认工具提示
+                                content: '<div style="width:16px; height:16px; background-color:#FF0000; border-radius:50%; border:2px solid #FFFFFF;"></div>',
+                                offset: new AMap.Pixel(-8, -8), // 调整偏移量使中心对齐
+                                extData: { poiIndex: index, poiData: poi }, // 存储poiIndex和完整的poi数据，方便后续使用
+                                zIndex: 9999, // 设置一个非常高的zIndex，确保标记可点击
+                                bubble: false // 阻止默认InfoWindows弹出
+                            });
+                            
+                            // 为每个标记添加点击事件，显示信息窗体并高亮列表项
+                            marker.on('click', function(e) {
+                                console.log('Custom marker click handler triggered! (Attempt with stopPropagation)'); // 更具体的调试信息
+
+                                // 阻止事件冒泡，防止高德地图其他组件拦截点击或弹出默认InfoWindow
+                                if (e && e.originalEvent && typeof e.originalEvent.stopPropagation === 'function') {
+                                    e.originalEvent.stopPropagation();
+                                } else if (e && typeof e.stopPropagation === 'function') {
+                                    e.stopPropagation();
+                                }
+
+                                // 关闭上一个打开的信息窗体，这里不需要currentInfoWindow的判断了，因为只有一个共享的
+                                sharedInfoWindow.close();
+
+                                // 创建信息窗体内容的DOM元素
+                                let infoWindowContentDiv = document.createElement('div');
+                                infoWindowContentDiv.style.cssText = 'padding:10px; font-size:14px; line-height:20px;';
+                                // 新增：标题和名称显示逻辑
+                                let title = poi.name || '';
+                                let name = poi.name || '';
+                                let displayTitle = '';
+                                if (title && name) {
+                                    displayTitle = `${title}（${name}）`;
+                                } else if (title) {
+                                    displayTitle = title;
+                                } else if (name) {
+                                    displayTitle = name;
+                                } else {
+                                    displayTitle = '无名收藏点';
+                                }
+                                infoWindowContentDiv.innerHTML = `
+                                    <b>${displayTitle}</b><br>
+                                    地址: ${poi.address || '暂无地址'}<br>
+                                    经纬度: ${lnglat.lng}, ${lnglat.lat}<br>
+                                    <button class="set-nav-btn-info-window" data-type="from" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name||''}" style="background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px; font-size: 12px;">起点</button>
+                                    <button class="set-nav-btn-info-window" data-type="to" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name||''}" style="background-color: #28a745; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">终点</button>
+                                    <button class="fav-add-btn-info-window" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name||''}" data-address="${poi.address||''}" style="background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;">收藏</button>
+                                    <button class=\"elevation-btn-info-window\" data-lng=\"${lnglat.lng}\" data-lat=\"${lnglat.lat}\" style=\"background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;\">海拔</button>
+                                `;
+
+                                sharedInfoWindow.setContent(infoWindowContentDiv); // 设置DOM元素为内容
+                                sharedInfoWindow.open(map, marker.getPosition());
+
+                                highlightSearchResultListItem(marker.getExtData().poiIndex); // 高亮列表项
+                                searchResultsPanel.style.display = 'block'; // 显示搜索结果面板
+                                planForm.style.display = 'block'; // 确保导航面板可见
+                                adjustPanelsPosition(); // 调整导航面板位置
+
+                                // 重新绑定信息窗体内的按钮事件，通过直接查询DOM确保元素已渲染
+                                setTimeout(() => {
+                                    let openedInfoWindowElement = document.querySelector('.amap-info-content'); // 查找当前打开的InfoWindow的自定义内容容器
+                                    if (openedInfoWindowElement) {
+                                        let infoWindowButtons = openedInfoWindowElement.querySelectorAll('.set-nav-btn-info-window');
+                                        console.log(`Marker InfoWindow button binding: Found ${infoWindowButtons.length} buttons.`);
+                                        infoWindowButtons.forEach(btn => {
+                                            btn.onclick = function() {
+                                                console.log('Marker InfoWindow button clicked! (DOM query with stopPropagation)');
+                                                handleSetNavButtonClick(this.dataset.type, this.dataset.lng, this.dataset.lat, this.dataset.name);
+                                                sharedInfoWindow.close();
+                                            };
+                                        });
+                                        // 收藏按钮绑定
+                        let favBtn = openedInfoWindowElement.querySelector('.fav-add-btn-info-window');
+                        if (favBtn) {
+                            favBtn.onclick = function() {
+                                let lng = parseFloat(this.dataset.lng);
+                                let lat = parseFloat(this.dataset.lat);
+                                let name = this.dataset.name;
+                                let address = this.dataset.address;
+                                let tag = prompt('请输入标签（可选，多个标签用逗号分隔）：', '');
+                                if (tag !== null) {
+                                    let remark = prompt('请输入备注（可选）：', '');
+                                    if (remark !== null) {
+                                        addFav({lng, lat, name, address, remark: remark || '', tag: tag || '', time: Date.now()});
+                                        alert('已收藏！');
+                                        sharedInfoWindow.close();
+                                    }
+                                }
+                            };
+                        }
+                                    } else {
+                                        console.warn('Marker InfoWindow: Could not find content element for button binding after stopPropagation attempt.');
+                                    }
+                                }, 50); // 短暂延迟，确保DOM渲染
+                            });
+
+                            marker.setMap(map); // 在绑定事件后，手动将标记添加到地图上
+                            allSearchResultsMarkers.push(marker); // 将标记添加到数组
+
+                            // 创建列表项
+                            let listItem = document.createElement('li');
+                            listItem.style.cssText = 'padding: 8px 3px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center;';
+                            listItem.setAttribute('data-poi-index', index); // 为列表项添加data-poi-index
+                            listItem.innerHTML = `
+                                <div>
+                                    <div style="font-weight: bold; font-size: 14px; color: #333;">${poi.name}</div>
+                                    <div style="font-size: 12px; color: #666;">${poi.address || '暂无地址'}</div>
+                                </div>
+                                <div style="display:flex;flex-direction:row;gap:4px;align-items:center;">
+                                    <button class="set-nav-btn" data-type="from" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" style="background-color: #0078ff; color: #fff; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;min-width:32px;">起</button>
+                                    <button class="set-nav-btn" data-type="to" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" style="background-color: #28a745; color: #fff; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;min-width:32px;">终</button>
+                                </div>
+                            `;
+                            searchResultsList.appendChild(listItem);
+
+                            // 为列表项添加点击事件
+                            listItem.onclick = function() {
+                                highlightSearchResultListItem(index); // 高亮列表项
+                                map.setCenter(lnglat); // 将地图中心移到选中结果
+                                map.setZoom(14); // 适当放大地图
+                                
+                                // 关闭共享的InfoWindow
+                                sharedInfoWindow.close();
+
+                                // 创建信息窗体内容的DOM元素
+                                let infoWindowContentDiv = document.createElement('div');
+                                infoWindowContentDiv.style.cssText = 'padding:10px; font-size:14px; line-height:20px;';
+                                infoWindowContentDiv.innerHTML = `
+                                    <b>${poi.name}</b><br>
+                                    地址: ${poi.address || '暂无地址'}<br>
+                                    经纬度: ${lnglat.lng}, ${lnglat.lat}<br>
+                                    <button class="set-nav-btn-info-window" data-type="from" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" style="background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px; font-size: 12px;">起点</button>
+                                    <button class="set-nav-btn-info-window" data-type="to" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" style="background-color: #28a745; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">终点</button>
+                                    <button class="fav-add-btn-info-window" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" data-address="${poi.address||''}" style="background-color: #ff9800; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;">收藏</button>
+                                    <button class=\"elevation-btn-info-window\" data-lng=\"${lnglat.lng}\" data-lat=\"${lnglat.lat}\" style=\"background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;\">海拔</button>
+                                `;
+
+                                sharedInfoWindow.setContent(infoWindowContentDiv); // 设置DOM元素为内容
+                                sharedInfoWindow.open(map, marker.getPosition());
+
+                                currentInfoWindow = sharedInfoWindow; // 更新currentInfoWindow引用，以防其他函数需要
+
+                                searchResultsPanel.style.display = 'block'; // 确保搜索结果面板可见
+                                planForm.style.display = 'block'; // 确保导航面板可见
+                                adjustPanelsPosition(); // 调整导航面板位置
+
+                                // 重新绑定信息窗体内的按钮事件，通过直接查询DOM确保元素已渲染
+                                setTimeout(() => {
+                                    let openedInfoWindowElement = document.querySelector('.amap-info-content'); // 查找当前打开的InfoWindow的自定义内容容器
+                                    if (openedInfoWindowElement) {
+                                        let infoWindowButtons = openedInfoWindowElement.querySelectorAll('.set-nav-btn-info-window');
+                                        console.log(`List Item InfoWindow button binding: Found ${infoWindowButtons.length} buttons.`);
+                                        infoWindowButtons.forEach(btn => {
+                                            btn.onclick = function() {
+                                                console.log('List InfoWindow button clicked! (DOM query)');
+                                                handleSetNavButtonClick(this.dataset.type, this.dataset.lng, this.dataset.lat, this.dataset.name);
+                                                sharedInfoWindow.close();
+                                            };
+                                        });
+                                    } else {
+                                        console.warn('List Item InfoWindow: Could not find content element for button binding.');
+                                    }
+                                }, 50); // 短暂延迟，确保DOM渲染
+                            };
+
+                            // 为列表项中的按钮添加事件监听器 (原有的逻辑，复用)
+                            let buttons = listItem.querySelectorAll('.set-nav-btn');
+                            buttons.forEach(button => {
+                                button.onclick = function(event) {
+                                    event.stopPropagation(); // 阻止事件冒泡到listItem，避免触发两次
+                                    handleSetNavButtonClick(this.dataset.type, this.dataset.lng, this.dataset.lat, this.dataset.name);
+                                };
+                            });
+                        });
+
+                        map.setFitView(allSearchResultsMarkers); // 调整地图视野以包含所有标记
+                        searchResultsPanel.style.display = 'block'; // 显示搜索结果面板
+                        planForm.style.display = 'block'; // 确保导航面板可见
+                        adjustPanelsPosition(); // 调整导航面板位置
+
+                    } else {
+                        searchResultsList.innerHTML = '<li style="padding: 8px 0; color: #666;">未找到相关位置，请尝试更精确的关键词。</li>';
+                        searchResultsPanel.style.display = 'block';
+                        planForm.style.display = 'block'; // 确保导航面板可见
+                        adjustPanelsPosition(); // 调整导航面板位置
+                    }
+                });
+            } else {
+                alert('请输入要搜索的位置关键词。');
+            }
+        }
+
+        searchBtn.onclick = performSearch;
+
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        // 新增处理设置导航按钮的通用函数
+        function handleSetNavButtonClick(type, lng, lat, name) {
+            console.log('handleSetNavButtonClick called!', type, lng, lat, name); // 调试信息
+            let targetLngLat = new AMap.LngLat(parseFloat(lng), parseFloat(lat));
+            if (type === 'from') {
+                if (navStartMarker) map.remove(navStartMarker);
+                navStart = targetLngLat;
+                navStartMarker = new AMap.Marker({ position: navStart, map: map, title: '起点', icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png', anchor: 'bottom-center' });
+                document.getElementById('dir_from_ipt').value = `${name} (${lng},${lat})`;
+            } else if (type === 'to') {
+                if (navEndMarker) map.remove(navEndMarker);
+                navEnd = targetLngLat;
+                navEndMarker = new AMap.Marker({ position: navEnd, map: map, title: '终点', icon: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png', anchor: 'bottom-center' });
+                document.getElementById('dir_to_ipt').value = `${name} (${lng},${lat})`;
+            }
+            planForm.style.display = 'block';
+            searchResultsPanel.style.display = 'none';
+            adjustPanelsPosition();
+            if (allSearchResultsMarkers.length > 0) {
+                map.remove(allSearchResultsMarkers);
+                allSearchResultsMarkers = [];
+            }
+            sharedInfoWindow.close();
+            currentInfoWindow = null;
+            Array.from(searchResultsList.children).forEach(li => {
+                li.classList.remove('selected-search-result');
+            });
+        }
+
+        // 新增DOM元素引用
+        var searchResultsPanel = document.getElementById('searchResultsPanel');
+        var searchResultsList = document.getElementById('searchResultsList');
+        var searchContainer = document.getElementById('searchContainer'); // 新增：获取searchContainer的引用
+        var planForm = document.getElementById('planForm'); // 新增：获取planForm的引用
+
+        // 辅助函数：根据搜索结果面板的显示状态调整导航面板位置
+        function adjustPanelsPosition() {
+            if (!searchContainer) return; // 若searchContainer不存在，直接跳过，防止报错
+            let baseTop = searchContainer.offsetTop + searchContainer.offsetHeight;
+            if (searchResultsPanel.style.display === 'block') {
+                // 搜索结果面板可见，间距为5px
+                planForm.style.top = (baseTop + 5) + 'px';
+            } else {
+                // 搜索结果面板隐藏，间距为10px
+                planForm.style.top = (baseTop + 10) + 'px';
+            }
+            planForm.style.display = 'block'; // 确保导航面板始终显示（除非dir_close明确关闭）
+        }
+
+        // 新增辅助函数：高亮搜索结果列表项
+        function highlightSearchResultListItem(poiIndex) {
+            // 移除所有列表项的高亮
+            Array.from(searchResultsList.children).forEach(li => {
+                li.classList.remove('selected-search-result');
+            });
+
+            // 找到并高亮指定的列表项
+            let targetLi = searchResultsList.querySelector(`li[data-poi-index="${poiIndex}"]`);
+            if (targetLi) {
+                targetLi.classList.add('selected-search-result');
+                // 滚动到高亮项，使其可见
+                targetLi.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        // 更新 clearAllNavigationData 函数，以清除搜索结果面板
+        var originalClearAllNavigationData = clearAllNavigationData;
+        clearAllNavigationData = function() {
+            originalClearAllNavigationData(); // 调用原始的清除函数
+            searchResultsList.innerHTML = ''; // 清空搜索结果列表
+            // 移除所有列表项的高亮
+            Array.from(searchResultsList.children).forEach(li => {
+                li.classList.remove('selected-search-result');
+            });
+            searchResultsPanel.style.display = 'none'; // 隐藏搜索结果面板
+
+            // 清除所有搜索结果标记
+            if (allSearchResultsMarkers.length > 0) {
+                map.remove(allSearchResultsMarkers);
+                allSearchResultsMarkers = [];
+            }
+            // 关闭共享的InfoWindow
+            sharedInfoWindow.close();
+            currentInfoWindow = null;
+
+            adjustPanelsPosition(); // 调整导航面板位置，使其回到初始位
+        };
+        // ========== 位置搜索功能 END ========== //
+
+        // ========== 收藏点功能 START ========== //
+        // 收藏点本地存储结构: {location: [lng, lat], name, address, remark, time, title}
+        var favStorageKey = 'amap_favs';
+        var favMarkers = [];
+        function getFavs() {
+          let arr = [];
+          try { arr = JSON.parse(localStorage.getItem(favStorageKey)||'[]'); } catch(e) {}
+          // 兼容老格式，自动转换
+          arr = arr.map(f => {
+            if (f.location && Array.isArray(f.location)) return f;
+            if (f.lng !== undefined && f.lat !== undefined) {
+              let {lng, lat, ...rest} = f;
+              return {location: [Number(lng), Number(lat)], ...rest};
+            }
+            return f;
+          });
+          return Array.isArray(arr) ? arr : [];
+        }
+        function saveFavs(arr) {
+          localStorage.setItem(favStorageKey, JSON.stringify(arr));
+        }
+        function addFav(point) {
+          // 兼容传入lng/lat或location
+          let favs = getFavs();
+          let location = point.location || [Number(point.lng), Number(point.lat)];
+          // 去重: location唯一
+          if (!favs.some(f=>f.location&&f.location[0]==location[0]&&f.location[1]==location[1])) {
+            let newFav = { ...point, location };
+            delete newFav.lng; delete newFav.lat;
+            favs.push(newFav);
+            saveFavs(favs);
+            renderFavMarkers();
+            renderFavPanel();
+          }
+        }
+        function removeFav(idx) {
+          let favs = getFavs();
+          favs.splice(idx,1);
+          saveFavs(favs);
+          renderFavMarkers();
+          renderFavPanel();
+        }
+        function updateFavRemark(idx, remark) {
+          let favs = getFavs();
+          favs[idx].remark = remark;
+          saveFavs(favs);
+          renderFavMarkers(); // 只刷新marker，不刷新面板
+        }
+        function updateFavTitle(idx, title) {
+          let favs = getFavs();
+          favs[idx].title = title;
+          saveFavs(favs);
+          renderFavMarkers();
+        }
+        function updateFavTag(idx, tag) {
+  let favs = getFavs();
+  favs[idx].tag = tag;
+  saveFavs(favs);
+  // 重新初始化新标签的状态
+  if (tag) {
+    tag.split(',').map(t=>t.trim()).filter(t=>t).forEach(t=>{
+      if (tagStates[t] === undefined) {
+        tagStates[t] = 1; // 新标签默认为显示状态
+        // 保存标签状态到本地存储
+        saveTagStates();
+      }
+    });
+  }
+}
+        function clearAllFavs() {
+          localStorage.removeItem(favStorageKey);
+          renderFavMarkers();
+          renderFavPanel();
+        }
+        function renderFavMarkers() {
+          console.log('开始渲染收藏点标记...');
+          favMarkers.forEach(m=>map.remove(m));
+          favMarkers = [];
+          let favs = getFavs();
+          console.log('总收藏点数量:', favs.length);
+          
+          // 过滤收藏点
+          let filteredFavs = favs.filter((f, idx) => {
+            let shouldShow = shouldShowFav(f);
+            console.log(`收藏点 ${f.title || f.name || '无名收藏点'} ${shouldShow ? '显示' : '隐藏'}`);
+            return shouldShow;
+          });
+          
+          console.log('过滤后收藏点数量:', filteredFavs.length);
+          
+          filteredFavs.forEach((f,filteredIdx)=>{
+            // 找到原始索引 - 使用更可靠的方法比较位置
+            let idx = favs.findIndex(item => 
+              item.location && f.location && 
+              item.location[0] === f.location[0] && 
+              item.location[1] === f.location[1]
+            );
+            console.log(`渲染收藏点 ${f.title || f.name || '无名收藏点'}, 原始索引: ${idx}`);
+            let [lng, lat] = f.location;
+            let nameLabelText = f.title || f.name || '';
+            let nameLabelId = `favnamelabel_${idx}_${Date.now()}`;
+            let marker = new AMap.Marker({
+              position: [lng, lat],
+              map: map,
+              title: '',
+              zIndex: 10001,
+              content: `<div style='position:relative;display:flex;flex-direction:row;align-items:center;'>
+                <img id='${nameLabelId}_icon' src='https://webapi.amap.com/theme/v1.3/markers/n/mark_bs.png' style='width:19px;height:33px;cursor:pointer;'>
+                <span id='${nameLabelId}' style='margin-left:1px;display:inline-block;background:#ffffff;color:#555;border: 1px solid rgba(33,150,234,0.3); font-size:12px;padding:1px 8px;border-radius:3px;box-shadow:0 1px 4px #2196F333;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;cursor:default;pointer-events:none;'>${nameLabelText}</span>
+              </div>`,
+              offset: new AMap.Pixel(-11,-22),
+              extData: {favIdx: idx, nameLabelId: nameLabelId},
+              bubble: false
+            });
+            marker.on('click', function() {
+              // 隐藏nameLabel
+              let labelEl = document.getElementById(nameLabelId);
+              if(labelEl) labelEl.style.display = 'none';
+              let infoWindowContentDiv = document.createElement('div');
+              infoWindowContentDiv.style.cssText = 'padding:10px; font-size:14px; line-height:20px;';
+              let title = f.title || '';
+              let name = f.name || '';
+              let displayTitle = '';
+              if (title && name) {
+                displayTitle = `${title}（${name}）`;
+              } else if (title) {
+                displayTitle = title;
+              } else if (name) {
+                displayTitle = name;
+              } else {
+                displayTitle = '无名收藏点';
+              }
+              // 新增：备注内容显示（无特殊样式）
+              let remarkHtml = '';
+              if (f.remark && f.remark.trim() !== '') {
+                remarkHtml = `备注: ${f.remark}<br>`;
+              }
+              infoWindowContentDiv.innerHTML = `
+                <b>${displayTitle}</b><br>
+                地址: ${f.address||'暂无地址'}<br>
+                经纬度: ${lng}, ${lat}<br>
+                ${remarkHtml}
+                <button class=\"set-nav-btn-info-window\" data-type=\"from\" data-lng=\"${lng}\" data-lat=\"${lat}\" data-name=\"${f.name||''}\" style=\"background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px; font-size: 12px;\">起点</button>
+                <button class=\"set-nav-btn-info-window\" data-type=\"to\" data-lng=\"${lng}\" data-lat=\"${lat}\" data-name=\"${f.name||''}\" style=\"background-color: #28a745; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;\">终点</button>
+                <button class=\"fav-push-btn-info-window\" data-lng=\"${lng}\" data-lat=\"${lat}\" data-name=\"${f.name||''}\" data-address=\"${f.address||''}\" style=\"background-color: #ff9800; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;\">推送</button>
+                <button class=\"elevation-btn-info-window\" data-lng=\"${lng}\" data-lat=\"${lat}\" style=\"background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;\">海拔</button>
+              `;
+              sharedInfoWindow.setContent(infoWindowContentDiv);
+              sharedInfoWindow.open(map, marker.getPosition());
+              // 监听弹窗关闭，恢复nameLabel显示
+              sharedInfoWindow.off('close');
+              sharedInfoWindow.on('close', function() {
+                let labelEl = document.getElementById(nameLabelId);
+                if(labelEl) labelEl.style.display = '';
+              });
+            });
+            favMarkers.push(marker);
+          });
+        }
+        // 全局变量：标签状态管理
+var tagStatesStorageKey = 'amap_tag_states'; // 标签状态存储键名
+var tagStates = loadTagStates(); // {tagName: 0|1|null} 0=隐藏，1=显示，null=默认
+// var currentFilterTag = null; // 当前筛选的标签 —— 已移除
+
+// 从本地存储加载标签状态
+function loadTagStates() {
+  try {
+    const savedStates = localStorage.getItem(tagStatesStorageKey);
+    console.log('从本地存储加载标签状态:', savedStates);
+    
+    if (savedStates) {
+      const parsedStates = JSON.parse(savedStates);
+      console.log('解析后的标签状态:', parsedStates);
+      return parsedStates;
+    } else {
+      console.log('本地存储中没有标签状态，使用空对象');
+      return {};
+    }
+  } catch(e) {
+    console.error('加载标签状态失败:', e);
+    return {};
+  }
+}
+
+// 保存标签状态到本地存储
+function saveTagStates() {
+  try {
+    const statesJson = JSON.stringify(tagStates);
+    console.log('保存标签状态到本地存储:', statesJson);
+    localStorage.setItem(tagStatesStorageKey, statesJson);
+    
+    // 验证保存是否成功
+    const savedStates = localStorage.getItem(tagStatesStorageKey);
+    console.log('验证保存的标签状态:', savedStates);
+    
+    if (savedStates !== statesJson) {
+      console.warn('警告：保存的标签状态与原始状态不匹配');
+    } else {
+      console.log('标签状态保存成功');
+    }
+  } catch(e) {
+    console.error('保存标签状态失败:', e);
+  }
+}
+        
+        // 标签点击处理函数（左键点击）
+        function handleTagClick(tag) {
+          toggleTagState(tag); // 只切换三态
+          renderFavPanel();
+          renderFavMarkers();
+        }
+        
+        // 标签三态切换函数
+function toggleTagState(tag, shouldRender = true) {
+  console.log('切换标签状态:', tag, '当前状态:', tagStates[tag]);
+  
+  // 三态循环：显示(1) → 隐藏(0) → 默认(null) → 显示(1)
+  // 这样的顺序更符合用户预期，因为在shouldShowFav中优先级是：隐藏 > 显示 > 默认
+  let oldState = tagStates[tag];
+  if (tagStates[tag] === 1) {
+    tagStates[tag] = 0; // 显示 → 隐藏
+    console.log(`标签 ${tag} 从显示切换为隐藏`);
+  } else if (tagStates[tag] === 0) {
+    tagStates[tag] = null; // 隐藏 → 默认
+    console.log(`标签 ${tag} 从隐藏切换为默认`);
+  } else {
+    tagStates[tag] = 1; // 默认 → 显示
+    console.log(`标签 ${tag} 从默认切换为显示`);
+  }
+  
+  console.log('标签状态已更改:', tag, oldState, '->', tagStates[tag]);
+  console.log('当前所有标签状态:', JSON.stringify(tagStates));
+  
+  // 保存标签状态到本地存储
+  saveTagStates();
+  console.log('标签状态已保存到本地存储');
+  
+  // 如果需要渲染，则重新渲染收藏面板和标记
+  if (shouldRender) {
+    renderFavPanel();
+    renderFavMarkers();
+  }
+}
+        
+        // 判断收藏点是否应该显示
+        function shouldShowFav(fav) {
+          // 只根据三态判断显示/隐藏
+          if (!fav.tag) return true; // 没有标签的收藏点始终显示
+          let tags = fav.tag.split(',').map(t=>t.trim()).filter(t=>t);
+          if (tags.length === 0) return true;
+          let hasHiddenTag = false;
+          let hasShownTag = false;
+          tags.forEach(tag => {
+            if (tagStates[tag] === 0) hasHiddenTag = true;
+            else if (tagStates[tag] === 1) hasShownTag = true;
+          });
+          if (hasHiddenTag) return false;
+          if (hasShownTag) return true;
+          return true;
+        }
+        
+        // 收藏管理面板渲染
+        function renderFavPanel() {
+          console.log('开始渲染收藏管理面板...');
+          let favs = getFavs();
+          console.log('总收藏点数量:', favs.length);
+          
+          // 过滤收藏点，与 renderFavMarkers 保持一致
+          let filteredFavs = favs.filter((f, idx) => {
+            let shouldShow = shouldShowFav(f);
+            console.log(`面板中收藏点 ${f.title || f.name || '无名收藏点'} ${shouldShow ? '显示' : '隐藏'}`);
+            return shouldShow;
+          });
+          console.log('面板中过滤后收藏点数量:', filteredFavs.length);
+          
+          let favList = document.getElementById('favList');
+          let favEmptyTip = document.getElementById('favEmptyTip');
+          favList.innerHTML = '';
+          // 渲染tag条
+          let tagSet = new Set();
+          favs.forEach(f => {
+            if (f.tag) {
+              f.tag.split(',').map(t=>t.trim()).filter(t=>t).forEach(t=>tagSet.add(t));
+            }
+          });
+          let favTagsBar = document.getElementById('favTagsBar');
+          favTagsBar.innerHTML = '';
+          if (tagSet.size > 0) {
+            tagSet.forEach(tag => {
+              console.log('处理标签:', tag, '当前状态:', tagStates[tag]);
+              
+              // 初始化标签状态为显示，但只有在标签状态不存在时才初始化
+              if (tagStates[tag] === undefined) {
+                console.log('标签状态不存在，初始化为显示状态:', tag);
+                tagStates[tag] = 1; // 默认显示
+                // 保存标签状态到本地存储
+                saveTagStates();
+              } else {
+                console.log('标签状态已存在，保持当前状态:', tag, tagStates[tag]);
+              }
+              
+              let tagEl = document.createElement('span');
+              tagEl.textContent = tag;
+              tagEl.className = 'tag-clickable';
+              tagEl.setAttribute('data-tag', tag);
+              
+              // 根据状态设置样式
+              let stateClass = '';
+              if (tagStates[tag] === 1) {
+                stateClass = 'tag-show';
+                console.log('标签样式: 显示', tag);
+              } else if (tagStates[tag] === 0) {
+                stateClass = 'tag-hide';
+                console.log('标签样式: 隐藏', tag);
+              } else {
+                stateClass = 'tag-default';
+                console.log('标签样式: 默认', tag);
+              }
+              tagEl.className += ' ' + stateClass;
+              tagEl.style = 'border-radius:5px;padding:2px 8px;font-size:13px;user-select:none;margin-right:4px;display:inline-block;min-width:38px;text-align:center;';
+              
+              // 只切换三态
+              tagEl.onclick = function(e) {
+                e.preventDefault();
+                handleTagClick(tag);
+              };
+              tagEl.oncontextmenu = function(e) {
+                e.preventDefault();
+                handleTagClick(tag);
+                return false;
+              };
+              tagEl.title = '点击切换标签显示/隐藏/默认';
+              favTagsBar.appendChild(tagEl);
+            });
+            // 动态插入重置标签按钮
+            let resetBtn = document.createElement('button');
+            resetBtn.id = 'resetTagStatesBtn';
+            resetBtn.textContent = '重置标签';
+            resetBtn.className = 'tag-clickable tag-default';
+            resetBtn.style = 'border-radius:5px;padding:2px 8px;font-size:13px;user-select:none;margin-right:4px;display:inline-block;min-width:38px;text-align:center;background:#fff;color:#0078ff;border:1.5px solid #0078ff;cursor:pointer;';
+            resetBtn.onclick = function() {
+              if (confirm('确定要重置所有标签状态吗？这将使所有标签恢复到默认显示状态。')) {
+                localStorage.removeItem(tagStatesStorageKey);
+                tagStates = {};
+                renderFavPanel();
+                renderFavMarkers();
+              }
+            };
+            favTagsBar.appendChild(resetBtn);
+          } else {
+            favTagsBar.innerHTML = '<span style="color:#bbb;font-size:13px;">无标签</span>';
+          }
+          if (favs.length === 0) {
+            favEmptyTip.style.display = 'block';
+            favEmptyTip.textContent = '暂无收藏点';
+            console.log('显示提示: 暂无收藏点');
+            return;
+          } else if (filteredFavs.length === 0) {
+            // 有收藏点但过滤后为空
+            favEmptyTip.style.display = 'block';
+            favEmptyTip.textContent = '当前筛选条件下无收藏点';
+            console.log('显示提示: 当前筛选条件下无收藏点');
+            return;
+          } else {
+            favEmptyTip.style.display = 'none';
+            console.log('隐藏空提示');
+          }
+          filteredFavs.forEach((f)=>{  // 使用过滤后的收藏点列表
+            // 获取原始索引，用于删除等操作
+            let idx = favs.findIndex(fav => 
+              fav.position && f.position && 
+              fav.position.lat === f.position.lat && 
+              fav.position.lng === f.position.lng
+            );
+            if (idx === -1) {
+              // 如果找不到匹配的位置，尝试使用location数组比较
+              idx = favs.findIndex(fav => 
+                fav.location && f.location && 
+                fav.location[0] === f.location[0] && 
+                fav.location[1] === f.location[1]
+              );
+            }
+            console.log(`渲染面板收藏点 ${f.title || f.name || '无名收藏点'}, 原始索引: ${idx}`);
+            if (idx === -1) {
+              console.error('无法找到收藏点的原始索引，跳过渲染', f);
+              return;
+            }
+            let [lng, lat] = f.location;
+            let li = document.createElement('li');
+            li.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #e6f0ff;';
+            // 构建主标题和精简标题输入框
+            let titleDiv = document.createElement('div');
+            titleDiv.style = 'font-weight:bold;color:#0078ff;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;';
+            titleDiv.textContent = f.title||f.name||'无名收藏点';
+            let inputTitle = document.createElement('input');
+            inputTitle.type = 'text';
+            inputTitle.value = f.title||'';
+            inputTitle.placeholder = '简称';
+            inputTitle.setAttribute('data-title-idx', idx);
+            inputTitle.style = 'width:70px;font-size:12px;padding:2px 4px;border:1px solid #2196f3;border-radius:4px;color:#0078ff;background:#e6f0ff;outline:none;margin-left:0;';
+            inputTitle.onkeydown = function(e) {
+              if (e.key === 'Enter') {
+                updateFavTitle(idx, this.value);
+                renderFavPanel();
+                this.blur();
+              }
+            };
+            let titleRow = document.createElement('div');
+            titleRow.style = 'display:flex;align-items:center;gap:6px;';
+            titleRow.appendChild(titleDiv);
+            titleRow.appendChild(inputTitle);
+            // 地址
+            let addressDiv = document.createElement('div');
+            addressDiv.style = 'font-size:12px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+            addressDiv.textContent = f.address||'';
+            // 标签输入框
+            let inputTag = document.createElement('input');
+            inputTag.type = 'text';
+            inputTag.value = f.tag||'';
+            inputTag.placeholder = '标签(逗号分隔)';
+            inputTag.setAttribute('data-tag-idx', idx);
+            inputTag.style = 'margin-top:2px;width:98%;font-size:12px;padding:2px 6px;border:1px solid #2196f3;border-radius:4px;color:#0078ff;background:#e6f0ff;outline:none;';
+            inputTag.onkeydown = function(e) {
+              if (e.key === 'Enter') {
+                updateFavTag(idx, this.value);
+                renderFavPanel();
+                renderFavMarkers();
+                this.blur();
+              }
+            };
+            
+            // 备注
+            let inputRemark = document.createElement('input');
+            inputRemark.type = 'text';
+            inputRemark.value = f.remark||'';
+            inputRemark.placeholder = '备注';
+            inputRemark.setAttribute('data-idx', idx);
+            inputRemark.style = 'margin-top:2px;width:98%;font-size:12px;padding:2px 6px;border:1px solid #2196f3;border-radius:4px;color:#0078ff;background:#e6f0ff;outline:none;';
+            inputRemark.onkeydown = function(e) {
+              if (e.key === 'Enter') {
+                updateFavRemark(idx, this.value);
+                renderFavPanel();
+                this.blur();
+              }
+            };
+            // 左侧主内容
+            let leftDiv = document.createElement('div');
+            leftDiv.style = 'flex:1;min-width:0;';
+            leftDiv.appendChild(titleRow);
+            leftDiv.appendChild(addressDiv);
+            leftDiv.appendChild(inputTag);
+            leftDiv.appendChild(inputRemark);
+            // 按钮
+            let btnLocate = document.createElement('button');
+            btnLocate.className = 'favLocateBtn';
+            btnLocate.setAttribute('data-idx', idx);
+            btnLocate.style = 'background:#fff;color:#0078ff;border:1.2px solid #2196f3;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;';
+            btnLocate.innerHTML = '<img src="img/target.svg" alt="定位" style="width:18px;height:18px;object-fit:contain;filter:invert(29%) sepia(99%) saturate(7496%) hue-rotate(199deg) brightness(99%) contrast(101%);">';
+            let btnDel = document.createElement('button');
+            btnDel.className = 'favDelBtn';
+            btnDel.setAttribute('data-idx', idx);
+            btnDel.style = 'background:#fff;color:#0078ff;border:1.2px solid #2196f3;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;';
+            btnDel.innerHTML = '<img src="img/delete.svg" alt="删除" style="width:18px;height:18px;object-fit:contain;filter:invert(29%) sepia(99%) saturate(7496%) hue-rotate(199deg) brightness(99%) contrast(101%);">';
+            // 修改收藏点li的按钮布局为纵向排列
+            let btnBox = document.createElement('div');
+            btnBox.style = 'display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;margin-left:12px;';
+            btnBox.appendChild(btnLocate);
+            btnBox.appendChild(btnDel);
+            li.appendChild(leftDiv);
+            li.appendChild(btnBox);
+            favList.appendChild(li);
+          });
+          
+          // 更新空提示
+          console.log('收藏点过滤结果:', filteredFavs.length, '/', favs.length);
+          if (filteredFavs.length === 0 && favs.length > 0) {
+            favEmptyTip.style.display = 'block';
+            favEmptyTip.textContent = '当前筛选条件下无收藏点';
+            console.log('显示提示: 当前筛选条件下无收藏点');
+          } else if (favs.length === 0) {
+            favEmptyTip.style.display = 'block';
+            favEmptyTip.textContent = '暂无收藏点';
+            console.log('显示提示: 暂无收藏点');
+          } else {
+            favEmptyTip.style.display = 'none';
+            console.log('隐藏空提示');
+          }
+        }
+        // 绑定事件（只绑定一次）
+        document.getElementById('toolsBtn').onclick = function() {
+          var toolsContainer = document.getElementById('toolsContainer');
+          if (toolsContainer.style.display === 'none' || toolsContainer.style.display === '') {
+            toolsContainer.style.display = 'block';
+            renderFavPanel(); // 每次展开都刷新收藏点
+          } else {
+            toolsContainer.style.display = 'none';
+          }
+        };
+        // document.getElementById('favPanelClose').onclick = function() {
+        //   document.getElementById('toolsContainer').style.display = 'none';
+        // };
+        document.getElementById('favList').onclick = function(e) {
+          let t = e.target;
+          // 兼容点击button或img
+          if (t.tagName === 'IMG' && t.parentElement && t.parentElement.classList.contains('favLocateBtn')) {
+            t = t.parentElement;
+          }
+          if (t.classList.contains('favLocateBtn')) {
+            let idx = t.dataset.idx;
+            let fav = getFavs()[idx];
+            map.setCenter(fav.location);
+            map.setZoom(16);
+            return;
+          }
+          if (t.tagName === 'IMG' && t.parentElement && t.parentElement.classList.contains('favDelBtn')) {
+            t = t.parentElement;
+          }
+          if (t.classList.contains('favDelBtn')) {
+            let idx = t.dataset.idx;
+            removeFav(idx);
+            return;
+          }
+        };
+        document.getElementById('favClearAllBtn').onclick = function() {
+          if (confirm('确定要删除所有收藏点吗？')) {
+            clearAllFavs();
+          }
+        };
+        document.getElementById('favExportBtn').onclick = function() {
+          let favs = getFavs();
+          // 字段顺序整理，并保证title存在
+          let exportFavs = favs.map(f => {
+            return {
+              location: f.location ? [f.location[0], f.location[1]] : undefined,
+              name: f.name || '',
+              title: f.title || '',
+              address: f.address || '',
+              remark: f.remark || '',
+              time: f.time || ''
+            };
+          });
+          // 每条记录一行，条目间用回车分隔
+          let lines = exportFavs.map(f => JSON.stringify(f));
+          let blob = new Blob([
+            lines.join('\n')
+          ], {type:'application/json'});
+          let a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          // 生成当前时间字符串
+          let now = new Date();
+          let pad = n => n.toString().padStart(2, '0');
+          let y = now.getFullYear();
+          let m = pad(now.getMonth()+1);
+          let d = pad(now.getDate());
+          let hh = pad(now.getHours());
+          let mm = pad(now.getMinutes());
+          a.download = `amap_favs_${y}${m}${d}${hh}${mm}.json`;
+          a.click();
+        };
+        document.getElementById('favImportInput').onchange = function(e) {
+          let file = e.target.files[0];
+          if (!file) return;
+          let reader = new FileReader();
+          reader.onload = function(evt) {
+            try {
+              let text = evt.target.result.trim();
+              // 支持每行一个对象的格式
+              let arr = [];
+              if (text.startsWith('[')) {
+                arr = JSON.parse(text);
+              } else {
+                arr = text.split('\n').map(line => JSON.parse(line));
+              }
+              if (!Array.isArray(arr)) throw '格式错误';
+              // 字段兼容处理
+              arr = arr.map(f => {
+                if (f.location && Array.isArray(f.location)) return { ...f, title: f.title || '' };
+                if (f.lng !== undefined && f.lat !== undefined) {
+                  let {lng, lat, ...rest} = f;
+                  return {location: [Number(lng), Number(lat)], ...rest, title: f.title || ''};
+                }
+                return { ...f, title: f.title || '' };
+              });
+              // 合并去重
+              let favs = getFavs();
+              arr.forEach(f=>{
+                if (!favs.some(ff=>ff.location&&ff.location[0]==f.location[0]&&ff.location[1]==f.location[1])) favs.push(f);
+              });
+              saveFavs(favs);
+              renderFavPanel();
+              renderFavMarkers();
+              alert('导入成功！');
+            } catch(e) { alert('导入失败，文件格式不正确！'); }
+          };
+          reader.readAsText(file);
+          this.value = '';
+        };
+        // 页面加载时自动渲染收藏点和面板
+        renderFavMarkers();
+        renderFavPanel();
+        // ========== 收藏点功能 END ========== //
+
+        // 事件委托，确保InfoWindow按钮都能响应
+        document.body.addEventListener('click', function(e) {
+            if (e.target.classList.contains('set-nav-btn-info-window')) {
+                const btn = e.target;
+                handleSetNavButtonClick(btn.dataset.type, btn.dataset.lng, btn.dataset.lat, btn.dataset.name);
+                sharedInfoWindow.close();
+            }
+            if (e.target.classList.contains('fav-add-btn-info-window')) {
+                const btn = e.target;
+                let lng = parseFloat(btn.dataset.lng);
+                let lat = parseFloat(btn.dataset.lat);
+                let name = btn.dataset.name;
+                let address = btn.dataset.address;
+                let tag = prompt('请输入标签（可选，多个标签用逗号分隔）：', '');
+                if (tag !== null) {
+                    let remark = prompt('请输入备注（可选）：', '');
+                    if (remark !== null) {
+                        addFav({lng, lat, name, address, remark: remark || '', tag: tag || '', time: Date.now()});
+                        alert('已收藏！');
+                        sharedInfoWindow.close();
+                    }
+                }
+            }
+            if (e.target.classList.contains('elevation-btn-info-window')) {
+                const btn = e.target;
+                let lng = parseFloat(btn.dataset.lng);
+                let lat = parseFloat(btn.dataset.lat);
+                queryElevation(lng, lat);
+            }
+if (e.target.classList.contains('fav-push-btn-info-window')) {
+    const btn = e.target;
+    let lng = parseFloat(btn.dataset.lng);
+    let lat = parseFloat(btn.dataset.lat);
+    let name = btn.dataset.name;
+    // 判断是否为移动端
+    let isMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent);
+    if (isMobile) {
+        // 构造高德地图唤起URI
+        let amapUrl = `amapuri://viewMap?sourceApplication=amap&lat=${lat}&lon=${lng}&poiname=${encodeURIComponent(name||'收藏点')}`;
+        window.location.href = amapUrl;
+    } else {
+        // 桌面端，跳转到高德网页版地图
+        let amapWebUrl = `https://www.amap.com/search?query=${encodeURIComponent(name||'收藏点')}&center=${lng},${lat}&zoom=16`;
+        window.open(amapWebUrl, '_blank');
+    }
+}
+            
+        });
+
+        // 页面加载时自动加载收藏点，并合并到localStorage
+var favJsonFiles = ['ditu/fav.json'];
+        // 加入多个收藏点文件，如 ['ditu/fav.json', 'ditu/fav1.json', 'ditu/myfav2.json']
+Promise.all(favJsonFiles.map(path => fetch(path).then(res => res.text()).catch(()=>'')))
+  .then(texts => {
+    let arr = [];
+    texts.forEach(text => {
+      try {
+        if (text.trim().startsWith('[')) {
+          arr = arr.concat(JSON.parse(text));
+        } else {
+          arr = arr.concat(text.trim().split('\n').map(line => JSON.parse(line)));
+        }
+      } catch(e) { /* 忽略单个文件错误 */ }
+    });
+    // 字段兼容处理
+    arr = arr.map(f => {
+      if (f.location && Array.isArray(f.location)) return { ...f, title: f.title || '' };
+      if (f.lng !== undefined && f.lat !== undefined) {
+        let {lng, lat, ...rest} = f;
+        return {location: [Number(lng), Number(lat)], ...rest, title: f.title || ''};
+      }
+      return { ...f, title: f.title || '' };
+    });
+    // 合并到localStorage
+    let favs = getFavs();
+    arr.forEach(f=>{
+      if (!favs.some(ff=>ff.location&&ff.location[0]==f.location[0]&&ff.location[1]==f.location[1])) favs.push(f);
+    });
+    localStorage.setItem('amap_favs', JSON.stringify(favs));
+    renderFavMarkers();
+    renderFavPanel && renderFavPanel();
+  });
+
+
+        // 在地图初始化后添加切换逻辑
+        var isSatellite = false;
+        var trafficLayer = null;
+        var isTraffic = false;
+        
+        // 定义卫星图层切换函数
+        function toggleSatellite() {
+          if (!isSatellite) {
+            map.setLayers([
+              new AMap.TileLayer.Satellite(),
+              new AMap.TileLayer.RoadNet()
+            ]);
+            isSatellite = true;
+            document.getElementById('satelliteToggleBtn').style.background = '#e6f0ff';
+            document.getElementById('satelliteToggleBtn').style.color = '#0056b3';
+          } else {
+            map.setLayers([
+              new AMap.TileLayer()
+            ]);
+            isSatellite = false;
+            document.getElementById('satelliteToggleBtn').style.background = '#fff';
+            document.getElementById('satelliteToggleBtn').style.color = '#0078ff';
+          }
+        }
+        
+        // 定义路况图层切换函数
+        function toggleTraffic() {
+          if (!isTraffic) {
+            if (!trafficLayer) {
+              trafficLayer = new AMap.TileLayer.Traffic({zIndex: 10});
+            }
+            map.add(trafficLayer);
+            isTraffic = true;
+            document.getElementById('trafficToggleBtn').style.background = '#e6f0ff';
+            document.getElementById('trafficToggleBtn').style.color = '#0056b3';
+          } else {
+            if (trafficLayer) {
+              map.remove(trafficLayer);
+            }
+            isTraffic = false;
+            document.getElementById('trafficToggleBtn').style.background = '#fff';
+            document.getElementById('trafficToggleBtn').style.color = '#0078ff';
+          }
+        }
+        
+        // 绑定按钮事件
+        document.getElementById('satelliteToggleBtn').onclick = toggleSatellite;
+        document.getElementById('trafficToggleBtn').onclick = toggleTraffic;
+        
+        // 确保在地图加载完成后绑定事件
+        map.on('complete', function() {
+          // 重新绑定卫星和路况按钮事件
+          document.getElementById('satelliteToggleBtn').onclick = toggleSatellite;
+          document.getElementById('trafficToggleBtn').onclick = toggleTraffic;
+        });
+
+        // 查询海拔函数
+        function queryElevation(lng, lat) {
+          var infoDiv = document.getElementById('elevationInfo');
+          infoDiv.style.display = 'block';
+          infoDiv.innerText = '正在查询海拔...';
+          fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.results && data.results.length > 0) {
+                infoDiv.innerText = `海拔：${data.results[0].elevation} 米`;
+              } else {
+                infoDiv.innerText = '海拔查询失败';
+              }
+              setTimeout(()=>{infoDiv.style.display='none';}, 8000);
+            })
+            .catch(()=>{
+              infoDiv.innerText = '海拔查询失败';
+              setTimeout(()=>{infoDiv.style.display='none';}, 4000);
+            });
+        }
+
+        // 工具按钮展开/收起逻辑
+        document.getElementById('toolsBtn').onclick = function() {
+          var toolsContainer = document.getElementById('toolsContainer');
+          if (toolsContainer.style.display === 'none' || toolsContainer.style.display === '') {
+            toolsContainer.style.display = 'block';
+          } else {
+            toolsContainer.style.display = 'none';
+          }
+        };
+        // 收藏面板关闭按钮
+        document.getElementById('favPanelClose').onclick = function() {
+          document.getElementById('toolsContainer').style.display = 'none';
+        };
+        // 收藏面板相关事件、渲染逻辑保持不变
+        document.getElementById('favList').onclick = function(e) {
+          let t = e.target;
+          // 兼容点击button或img
+          if (t.tagName === 'IMG' && t.parentElement && t.parentElement.classList.contains('favLocateBtn')) {
+            t = t.parentElement;
+          }
+          if (t.classList.contains('favLocateBtn')) {
+            let idx = t.dataset.idx;
+            let fav = getFavs()[idx];
+            map.setCenter(fav.location);
+            map.setZoom(16);
+            return;
+          }
+          if (t.tagName === 'IMG' && t.parentElement && t.parentElement.classList.contains('favDelBtn')) {
+            t = t.parentElement;
+          }
+          if (t.classList.contains('favDelBtn')) {
+            let idx = t.dataset.idx;
+            removeFav(idx);
+            return;
+          }
+        };
+        document.getElementById('favClearAllBtn').onclick = function() {
+          if (confirm('确定要删除所有收藏点吗？')) {
+            clearAllFavs();
+            renderFavPanel();
+          }
+        };
+        
+        // 重置标签状态按钮事件
+        document.getElementById('resetTagStatesBtn').onclick = function() {
+          if (confirm('确定要重置所有标签状态吗？这将使所有标签恢复到默认显示状态。')) {
+            // 清除本地存储中的标签状态
+            localStorage.removeItem(tagStatesStorageKey);
+            // 重置内存中的标签状态
+            tagStates = {};
+            // 重新渲染收藏面板和标记
+            renderFavPanel();
+            renderFavMarkers();
+          }
+        };
+        document.getElementById('favExportBtn').onclick = function() {
+          let favs = getFavs();
+          // 字段顺序整理，并保证title存在
+          let exportFavs = favs.map(f => {
+            return {
+              location: f.location ? [f.location[0], f.location[1]] : undefined,
+              name: f.name || '',
+              title: f.title || '',
+              address: f.address || '',
+              remark: f.remark || '',
+              time: f.time || ''
+            };
+          });
+          // 每条记录一行，条目间用回车分隔
+          let lines = exportFavs.map(f => JSON.stringify(f));
+          let blob = new Blob([
+            lines.join('\n')
+          ], {type:'application/json'});
+          let a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          // 生成当前时间字符串
+          let now = new Date();
+          let pad = n => n.toString().padStart(2, '0');
+          let y = now.getFullYear();
+          let m = pad(now.getMonth()+1);
+          let d = pad(now.getDate());
+          let hh = pad(now.getHours());
+          let mm = pad(now.getMinutes());
+          a.download = `amap_favs_${y}${m}${d}${hh}${mm}.json`;
+          a.click();
+        };
+        document.getElementById('favImportInput').onchange = function(e) {
+          let file = e.target.files[0];
+          if (!file) return;
+          let reader = new FileReader();
+          reader.onload = function(evt) {
+            try {
+              let text = evt.target.result.trim();
+              // 支持每行一个对象的格式
+              let arr = [];
+              if (text.startsWith('[')) {
+                arr = JSON.parse(text);
+              } else {
+                arr = text.split('\n').map(line => JSON.parse(line));
+              }
+              if (!Array.isArray(arr)) throw '格式错误';
+              // 字段兼容处理
+              arr = arr.map(f => {
+                if (f.location && Array.isArray(f.location)) return { ...f, title: f.title || '' };
+                if (f.lng !== undefined && f.lat !== undefined) {
+                  let {lng, lat, ...rest} = f;
+                  return {location: [Number(lng), Number(lat)], ...rest, title: f.title || ''};
+                }
+                return { ...f, title: f.title || '' };
+              });
+              // 合并去重
+              let favs = getFavs();
+              arr.forEach(f=>{
+                if (!favs.some(ff=>ff.location&&ff.location[0]==f.location[0]&&ff.location[1]==f.location[1])) favs.push(f);
+              });
+              saveFavs(favs);
+              renderFavPanel();
+              renderFavMarkers();
+              alert('导入成功！');
+            } catch(e) { alert('导入失败，文件格式不正确！'); }
+          };
+          reader.readAsText(file);
+          this.value = '';
+        };
+        // 卫星切换按钮逻辑保持不变
+        var isSatellite = false;
+        document.getElementById('satelliteToggleBtn').onclick = function() {
+          if (!isSatellite) {
+            map.setLayers([
+              new AMap.TileLayer.Satellite(),
+              new AMap.TileLayer.RoadNet()
+            ]);
+            isSatellite = true;
+            this.style.background = '#e6f0ff';
+            this.style.color = '#0056b3';
+          } else {
+            map.setLayers([
+              new AMap.TileLayer()
+            ]);
+            isSatellite = false;
+            this.style.background = '#fff';
+            this.style.color = '#0078ff';
+          }
+        };
+
+    </script>
+    <script>
+      // 在页面加载后为卫星和路况按钮插入蓝色SVG图标
+      window.addEventListener('DOMContentLoaded', function() {
+        var satBtn = document.getElementById('satelliteToggleBtn');
+        if (satBtn) satBtn.innerHTML = '<img src="img/satellite.svg" alt="卫星" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;filter:invert(29%) sepia(99%) saturate(7496%) hue-rotate(199deg) brightness(99%) contrast(101%);">卫星';
+        var trafficBtn = document.getElementById('trafficToggleBtn');
+        if (trafficBtn) trafficBtn.innerHTML = '<img src="img/traffic.svg" alt="路况" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;filter:invert(29%) sepia(99%) saturate(7496%) hue-rotate(199deg) brightness(99%) contrast(101%);">路况';
+      });
+    </script>
+</body>
+</html>
