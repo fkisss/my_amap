@@ -1640,14 +1640,17 @@ function toggleTagState(tag, shouldRender = true) {
             clearAllFavs();
           }
         };
-        document.getElementById('favExportBtn').onclick = function() {
+        // 事件绑定加容错
+        var btnExport = document.getElementById('favExportBtn');
+        if (btnExport) btnExport.onclick = function() {
           let favs = getFavs();
-          // 字段顺序整理，并保证title存在
+          // 字段顺序整理，并保证title和tag存在
           let exportFavs = favs.map(f => {
             return {
               location: f.location ? [f.location[0], f.location[1]] : undefined,
               name: f.name || '',
               title: f.title || '',
+              tag: f.tag || '',
               address: f.address || '',
               remark: f.remark || '',
               time: f.time || ''
@@ -1671,7 +1674,8 @@ function toggleTagState(tag, shouldRender = true) {
           a.download = `amap_favs_${y}${m}${d}${hh}${mm}.json`;
           a.click();
         };
-        document.getElementById('favImportInput').onchange = function(e) {
+        var btnImport = document.getElementById('favImportInput');
+        if (btnImport) btnImport.onchange = function(e) {
           let file = e.target.files[0];
           if (!file) return;
           let reader = new FileReader();
@@ -1708,6 +1712,12 @@ function toggleTagState(tag, shouldRender = true) {
           };
           reader.readAsText(file);
           this.value = '';
+        };
+        var btnClear = document.getElementById('favClearAllBtn');
+        if (btnClear) btnClear.onclick = function() {
+          if (confirm('确定要删除所有收藏点吗？')) {
+            clearAllFavs();
+          }
         };
         // 页面加载时自动渲染收藏点和面板
         renderFavMarkers();
@@ -1844,14 +1854,16 @@ Promise.all(favJsonFiles.map(path => fetch(path).then(res => res.text()).catch((
         }
         
         // 绑定按钮事件
-        document.getElementById('satelliteToggleBtn').onclick = toggleSatellite;
-        document.getElementById('trafficToggleBtn').onclick = toggleTraffic;
-        
+        var satBtn = document.getElementById('satelliteToggleBtn');
+        if (satBtn) satBtn.onclick = toggleSatellite;
+        var trafficBtn = document.getElementById('trafficToggleBtn');
+        if (trafficBtn) trafficBtn.onclick = toggleTraffic;
         // 确保在地图加载完成后绑定事件
         map.on('complete', function() {
-          // 重新绑定卫星和路况按钮事件
-          document.getElementById('satelliteToggleBtn').onclick = toggleSatellite;
-          document.getElementById('trafficToggleBtn').onclick = toggleTraffic;
+          var satBtn = document.getElementById('satelliteToggleBtn');
+          if (satBtn) satBtn.onclick = toggleSatellite;
+          var trafficBtn = document.getElementById('trafficToggleBtn');
+          if (trafficBtn) trafficBtn.onclick = toggleTraffic;
         });
 
         // 查询海拔函数
@@ -1885,11 +1897,13 @@ Promise.all(favJsonFiles.map(path => fetch(path).then(res => res.text()).catch((
           }
         };
         // 收藏面板关闭按钮
-        document.getElementById('favPanelClose').onclick = function() {
-          document.getElementById('toolsContainer').style.display = 'none';
-        };
+        // var favPanelCloseBtn = document.getElementById('favPanelClose');
+        // if (favPanelCloseBtn) favPanelCloseBtn.onclick = function() {
+        //   document.getElementById('toolsContainer').style.display = 'none';
+        // };
         // 收藏面板相关事件、渲染逻辑保持不变
-        document.getElementById('favList').onclick = function(e) {
+        var favList = document.getElementById('favList');
+        if (favList) favList.onclick = function(e) {
           let t = e.target;
           // 兼容点击button或img
           if (t.tagName === 'IMG' && t.parentElement && t.parentElement.classList.contains('favLocateBtn')) {
@@ -1911,15 +1925,16 @@ Promise.all(favJsonFiles.map(path => fetch(path).then(res => res.text()).catch((
             return;
           }
         };
-        document.getElementById('favClearAllBtn').onclick = function() {
+        var btnClear = document.getElementById('favClearAllBtn');
+        if (btnClear) btnClear.onclick = function() {
           if (confirm('确定要删除所有收藏点吗？')) {
             clearAllFavs();
             renderFavPanel();
           }
         };
-        
         // 重置标签状态按钮事件
-        document.getElementById('resetTagStatesBtn').onclick = function() {
+        var btnResetTag = document.getElementById('resetTagStatesBtn');
+        if (btnResetTag) btnResetTag.onclick = function() {
           if (confirm('确定要重置所有标签状态吗？这将使所有标签恢复到默认显示状态。')) {
             // 清除本地存储中的标签状态
             localStorage.removeItem(tagStatesStorageKey);
@@ -1930,14 +1945,16 @@ Promise.all(favJsonFiles.map(path => fetch(path).then(res => res.text()).catch((
             renderFavMarkers();
           }
         };
-        document.getElementById('favExportBtn').onclick = function() {
+        var btnExport = document.getElementById('favExportBtn');
+        if (btnExport) btnExport.onclick = function() {
           let favs = getFavs();
-          // 字段顺序整理，并保证title存在
+          // 字段顺序整理，并保证title和tag存在
           let exportFavs = favs.map(f => {
             return {
               location: f.location ? [f.location[0], f.location[1]] : undefined,
               name: f.name || '',
               title: f.title || '',
+              tag: f.tag || '',
               address: f.address || '',
               remark: f.remark || '',
               time: f.time || ''
@@ -1961,7 +1978,8 @@ Promise.all(favJsonFiles.map(path => fetch(path).then(res => res.text()).catch((
           a.download = `amap_favs_${y}${m}${d}${hh}${mm}.json`;
           a.click();
         };
-        document.getElementById('favImportInput').onchange = function(e) {
+        var btnImport = document.getElementById('favImportInput');
+        if (btnImport) btnImport.onchange = function(e) {
           let file = e.target.files[0];
           if (!file) return;
           let reader = new FileReader();
