@@ -330,6 +330,11 @@
           <label for="favImportInput" style="flex:1;background:#fff;color:#0078ff;border:1px solid #0078ff;border-radius:3px;padding:4px 0;font-weight:bold;cursor:pointer;text-align:center;transition:background-color 0.3s ease;font-size:13px;min-width:0;">导入JSON<input id="favImportInput" type="file" accept="application/json" style="display:none;"></label>
           <button id="favClearAllBtn" style="flex:1;background:#fff;color:#0078ff;border:1px solid #0078ff;border-radius:3px;padding:4px 0;font-weight:bold;cursor:pointer;transition:background-color 0.3s ease;font-size:13px;min-width:0;">全部删除</button>
         </div>
+        <!-- 云端同步区 -->
+        <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:8px;border-top:1px dashed #e0e0e0;">
+          <span id="favCloudStatus" style="flex:1;font-size:12px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="">云端：连接中…</span>
+          <button id="favTokenBtn" style="background:#fff;color:#0078ff;border:1px solid #0078ff;border-radius:3px;padding:3px 10px;font-size:12px;cursor:pointer;white-space:nowrap;">设置口令</button>
+        </div>
       </div>
     </div>
     <!-- 页面底部中间增加海拔信息显示区 -->
@@ -337,11 +342,11 @@
     <script type="text/javascript">
         // 请将 '您复制的"安全密钥"' 替换为您获取到的真实值
         window._AMapSecurityConfig = {
-            securityJsCode:'d86d74477c9e78e756a6a26aef731252',
+            securityJsCode:'1be04232160e25ebdc98e536461cc88e',
         }
     </script>
     <!-- 请将 '您的APIKey' 替换为您在高德开放平台获取到的真实API Key -->
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=cdd235e5b4b297e5516af8dea2e67266&plugin=AMap.Marker,AMap.Driving,AMap.Walking,AMap.Transfer,AMap.Geocoder,AMap.PlaceSearch"></script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=4d3fcfe3d1d890db9be898228864b671&plugin=AMap.Marker,AMap.Driving,AMap.Walking,AMap.Transfer,AMap.Geocoder,AMap.PlaceSearch"></script>
     <script>
       // 多条路线配置
       var xmlFileList = [
@@ -1132,6 +1137,44 @@
         }
         function saveFavs(arr) {
           localStorage.setItem(favStorageKey, JSON.stringify(arr));
+          scheduleCloudPush();
+        }
+
+        // ===== 云端同步 (Cloudflare KV via /api/favs) =====
+        var CLOUD_API = '/api/favs';
+        var tokenStorageKey = 'amap_edit_token';
+        var cloudReady = false;      // 云端首拉是否完成
+        var cloudPushTimer = null;
+        function getEditToken() { return localStorage.getItem(tokenStorageKey) || ''; }
+        function setEditToken(t) { localStorage.setItem(tokenStorageKey, t || ''); }
+        function setCloudStatus(text, color) {
+          var el = document.getElementById('favCloudStatus');
+          if (el) { el.textContent = text; el.style.color = color || '#999'; el.title = text; }
+        }
+        function scheduleCloudPush() {
+          if (!cloudReady) return;              // 首拉完成前不回推，避免覆盖云端
+          if (cloudPushTimer) clearTimeout(cloudPushTimer);
+          cloudPushTimer = setTimeout(pushToCloud, 800);
+        }
+        function pushToCloud() {
+          var token = getEditToken();
+          if (!token) { setCloudStatus('云端：未设置口令(仅本机)', '#e67700'); return; }
+          setCloudStatus('云端：保存中…', '#0078ff');
+          fetch(CLOUD_API, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Edit-Token': token },
+            body: localStorage.getItem(favStorageKey) || '[]'
+          }).then(function(res){
+            if (res.status === 401 || res.status === 403) { setCloudStatus('云端：口令错误，未保存', '#d00'); return; }
+            if (!res.ok) { setCloudStatus('云端：保存失败(' + res.status + ')', '#d00'); return; }
+            var t = new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+            setCloudStatus('云端：已保存 ' + t, '#00a000');
+          }).catch(function(){ setCloudStatus('云端：网络异常，未保存', '#d00'); });
+        }
+        function cloudGet() {
+          return fetch(CLOUD_API, { cache: 'no-store' })
+            .then(function(res){ return res.ok ? res.json() : null; })
+            .catch(function(){ return null; });
         }
         function addFav(point) {
           // 兼容传入lng/lat或location
@@ -1773,39 +1816,89 @@ if (e.target.classList.contains('fav-push-btn-info-window')) {
             
         });
 
-        // 页面加载时自动加载收藏点，并合并到localStorage
+        // 页面加载：云端优先，云端为空时用 fav.json 种子初始化
 var favJsonFiles = ['ditu/fav.json'];
         // 加入多个收藏点文件，如 ['ditu/fav.json', 'ditu/fav1.json', 'ditu/myfav2.json']
-Promise.all(favJsonFiles.map(path => fetch(path).then(res => res.text()).catch(()=>'')))
-  .then(texts => {
-    let arr = [];
-    texts.forEach(text => {
-      try {
-        if (text.trim().startsWith('[')) {
-          arr = arr.concat(JSON.parse(text));
-        } else {
-          arr = arr.concat(text.trim().split('\n').map(line => JSON.parse(line)));
+        // 读取并解析种子文件，返回标准化后的数组
+        function loadSeedFavs() {
+          return Promise.all(favJsonFiles.map(path => fetch(path).then(res => res.text()).catch(()=>'')))
+            .then(texts => {
+              let arr = [];
+              texts.forEach(text => {
+                try {
+                  if (text.trim().startsWith('[')) {
+                    arr = arr.concat(JSON.parse(text));
+                  } else {
+                    arr = arr.concat(text.trim().split('\n').map(line => JSON.parse(line)));
+                  }
+                } catch(e) { /* 忽略单个文件错误 */ }
+              });
+              return arr.map(f => {
+                if (f.location && Array.isArray(f.location)) return { ...f, title: f.title || '' };
+                if (f.lng !== undefined && f.lat !== undefined) {
+                  let {lng, lat, ...rest} = f;
+                  return {location: [Number(lng), Number(lat)], ...rest, title: f.title || ''};
+                }
+                return { ...f, title: f.title || '' };
+              });
+            });
         }
-      } catch(e) { /* 忽略单个文件错误 */ }
-    });
-    // 字段兼容处理
-    arr = arr.map(f => {
-      if (f.location && Array.isArray(f.location)) return { ...f, title: f.title || '' };
-      if (f.lng !== undefined && f.lat !== undefined) {
-        let {lng, lat, ...rest} = f;
-        return {location: [Number(lng), Number(lat)], ...rest, title: f.title || ''};
-      }
-      return { ...f, title: f.title || '' };
-    });
-    // 合并到localStorage
-    let favs = getFavs();
-    arr.forEach(f=>{
-      if (!favs.some(ff=>ff.location&&ff.location[0]==f.location[0]&&ff.location[1]==f.location[1])) favs.push(f);
-    });
-    localStorage.setItem('amap_favs', JSON.stringify(favs));
-    renderFavMarkers();
-    renderFavPanel && renderFavPanel();
-  });
+        function renderAllFavs() {
+          renderFavMarkers();
+          renderFavPanel && renderFavPanel();
+        }
+        // 初始化：先问云端
+        setCloudStatus('云端：连接中…', '#999');
+        cloudGet().then(function(cloud){
+          if (cloud === null) {
+            // 云端不可用(本地预览/未部署Functions) → 退回本地合并模式，修不了跨设备但不报错
+            return loadSeedFavs().then(function(seed){
+              let favs = getFavs();
+              seed.forEach(f=>{
+                if (!favs.some(ff=>ff.location&&ff.location[0]==f.location[0]&&ff.location[1]==f.location[1])) favs.push(f);
+              });
+              localStorage.setItem(favStorageKey, JSON.stringify(favs));
+              renderAllFavs();
+              setCloudStatus('云端：未连接(仅本机)', '#e67700');
+            });
+          }
+          if (Array.isArray(cloud) && cloud.length > 0) {
+            // 云端有数据 → 云端为准，直接覆盖本地(解决跨设备/删除复活)
+            localStorage.setItem(favStorageKey, JSON.stringify(cloud));
+            cloudReady = true;
+            renderAllFavs();
+            setCloudStatus(getEditToken() ? '云端：已同步' : '云端：只读(未设口令)', getEditToken() ? '#00a000' : '#0078ff');
+            return;
+          }
+          // 云端为空 → 用种子初始化，并尝试推送
+          return loadSeedFavs().then(function(seed){
+            localStorage.setItem(favStorageKey, JSON.stringify(seed));
+            cloudReady = true;
+            renderAllFavs();
+            if (getEditToken()) { pushToCloud(); } else { setCloudStatus('云端：只读(未设口令)', '#0078ff'); }
+          });
+        });
+        // 设置编辑口令按钮
+        (function(){
+          var btn = document.getElementById('favTokenBtn');
+          if (!btn) return;
+          function refreshBtn(){ btn.textContent = getEditToken() ? '修改口令' : '设置口令'; }
+          refreshBtn();
+          btn.addEventListener('click', function(){
+            var cur = getEditToken();
+            var val = prompt('请输入编辑口令(与 Cloudflare 环境变量 EDIT_TOKEN 一致)。\n设置后本设备的标注修改将保存到云端；留空则清除口令(仅本机)。', cur);
+            if (val === null) return; // 取消
+            setEditToken(val.trim());
+            refreshBtn();
+            if (val.trim()) {
+              setCloudStatus('云端：口令已设置，同步中…', '#0078ff');
+              cloudReady = true;
+              pushToCloud();
+            } else {
+              setCloudStatus('云端：已清除口令(仅本机)', '#e67700');
+            }
+          });
+        })();
 
 
         // 在地图初始化后添加切换逻辑
