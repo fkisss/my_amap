@@ -254,6 +254,31 @@
         .map-tool:first-child { border-radius: 12px 0 0 0; }
         .map-tool:last-child  { border-radius: 0 12px 0 0; }
 
+        /* 右上角工具按钮：常显，与搜索框并排、尺寸一致 */
+        #toolsBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 9000;
+            background: #fff;
+            border: 1px solid #ddd;
+            color: #666;
+            font-weight: bold;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            padding: 0 14px;
+            box-sizing: border-box;
+            width: 320px;
+            height: 52px;
+        }
+        #toolsBtn:hover { border-color: var(--primary); }
+        #toolsBtn svg { flex: none; }
+
         /* 统一收藏面板按钮 */
         .panel-btn { flex:1; border:none; border-radius:3px; padding:4px 0; font-weight:bold; cursor:pointer; font-size:13px; min-width:0; transition: background-color .3s, color .3s; }
         .panel-btn--solid { background: var(--primary); color:#fff; }
@@ -278,17 +303,26 @@
             #mainContainer { left: 10px; right: 10px; top: 10px; width: auto; max-width: none; min-width: 0; }
             #searchBox input { width: auto; min-width: 0; }
             #toolsContainer { left: 10px; right: 10px; top: 56px; width: auto !important; }
+            #toolsBtn { width: 44px !important; height: 44px !important; right: 10px; top: 10px; padding: 0; justify-content: center; }
             .iw-btn { padding: 7px 12px; font-size: 14px; }
             #favList { max-height: 40vh; }
             .amap-info-content.amap-info-outer { min-width: 180px !important; }
         }
-        /* 强制工具面板宽度不受外部影响 */
+        /* 工具面板：尺寸与位置由 JS 同步为与搜索框一致 */
         #toolsContainer {
-            width: 320px !important;
-            min-width: 0 !important;
-            max-width: none !important;
+            display: none;
+            position: absolute;
+            right: 20px;
+            top: 80px;
+            z-index: 10001;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #ddd;
+            overflow: hidden;
             box-sizing: border-box !important;
             padding: 0 !important;
+            width: 320px;
         }
         #favPanel {
             width: 100% !important;
@@ -365,16 +399,16 @@
     </div>
     <div id="container"></div>
     <!-- 工具按钮及工具面板 -->
-    <button id="toolsBtn" title="工具按钮" style="position:absolute;right:20px;top:20px;z-index:9000;background:#fff;border:1px solid #ddd;color:#666;font-weight:bold;border-radius:12px;padding:6px 6px;box-shadow:0 4px 12px rgba(0,0,0,0.15);cursor:pointer;display:flex;align-items:center;justify-content:center;width:36px;height:36px;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0078ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:0px;margin-top:0px;display:block;margin:auto;">
+    <button id="toolsBtn" title="工具">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0078ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex:none;">
         <path d="M22.7 19.3l-6.4-6.4c1.1-2.1.7-4.7-1.1-6.4-1.8-1.8-4.6-2.1-6.7-.7l3.2 3.2-2.1 2.1-3.2-3.2c-1.4 2.1-1.1 4.9.7 6.7 1.7 1.7 4.3 2.1 6.4 1.1l6.4 6.4c.4.4 1 .4 1.4 0l1.4-1.4c.4-.4.4-1 0-1.4z"></path>
       </svg>
+      <span style="font-size:15px;color:#0078ff;white-space:nowrap;">工具</span>
     </button>
-    <div id="toolsContainer" style="display:none;position:absolute;right:20px;top:60px;z-index:10001;background:#fff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:1px solid #ddd;overflow:hidden;">
+    <div id="toolsContainer">
       <div id="mapToolsRow" style="display:flex;gap:0;">
         <button id="satelliteToggleBtn" class="map-tool">卫星</button>
         <button id="trafficToggleBtn" class="map-tool">路况</button>
-        <button id="locateBtn" class="map-tool" title="回到我的位置">定位</button>
       </div>
       <div id="favPanel" style="display:block;background:#fff;border-radius:0 0 12px 12px;box-shadow:none;border:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:10px;">
@@ -404,7 +438,7 @@
         }
     </script>
     <!-- 请将 '您的APIKey' 替换为您在高德开放平台获取到的真实API Key -->
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=4d3fcfe3d1d890db9be898228864b671&plugin=AMap.Marker,AMap.Driving,AMap.Walking,AMap.Transfer,AMap.Geocoder,AMap.PlaceSearch,AMap.Geolocation"></script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=3b673d3e433dfee8e0ccd475050f2b68&plugin=AMap.Marker,AMap.Driving,AMap.Walking,AMap.Transfer,AMap.Geocoder,AMap.PlaceSearch"></script>
     <script>
       // 多条路线配置
       var xmlFileList = [
@@ -2067,15 +2101,8 @@ var favJsonFiles = ['ditu/fav.json'];
             });
         }
 
-        // 工具按钮展开/收起逻辑
-        document.getElementById('toolsBtn').onclick = function() {
-          var toolsContainer = document.getElementById('toolsContainer');
-          if (toolsContainer.style.display === 'none' || toolsContainer.style.display === '') {
-            toolsContainer.style.display = 'block';
-          } else {
-            toolsContainer.style.display = 'none';
-          }
-        };
+        // 工具按钮展开/收起逻辑已统一到上方绑定（含收藏面板刷新）
+
         // 收藏面板关闭按钮
         // var favPanelCloseBtn = document.getElementById('favPanelClose');
         // if (favPanelCloseBtn) favPanelCloseBtn.onclick = function() {
@@ -2197,25 +2224,7 @@ var favJsonFiles = ['ditu/fav.json'];
           reader.readAsText(file);
           this.value = '';
         };
-        // 「回到我的位置」按钮
-        document.getElementById('locateBtn').onclick = function() {
-          showToast('定位中…', 'info');
-          var geolocation = new AMap.Geolocation({
-            enableHighAccuracy: true,
-            timeout: 10000,
-            GeoLocationFirst: true,
-            maximumAge: 0
-          });
-          geolocation.getCurrentPosition(function(status, result) {
-            if (status === 'complete') {
-              var p = result.position;
-              map.setZoomAndCenter(15, [p.lng, p.lat]);
-              showToast('已定位到你的位置', 'success');
-            } else {
-              showToast('定位失败：' + (result.info || status), 'error');
-            }
-          });
-        };
+        // 「回到我的位置」按钮功能已移除
 
         // 卫星切换按钮逻辑保持不变
         var isSatellite = false;
@@ -2246,6 +2255,24 @@ var favJsonFiles = ['ditu/fav.json'];
         if (satBtn) satBtn.innerHTML = '<img src="img/satellite.svg" alt="卫星" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;filter:invert(29%) sepia(99%) saturate(7496%) hue-rotate(199deg) brightness(99%) contrast(101%);">卫星';
         var trafficBtn = document.getElementById('trafficToggleBtn');
         if (trafficBtn) trafficBtn.innerHTML = '<img src="img/traffic.svg" alt="路况" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;filter:invert(29%) sepia(99%) saturate(7496%) hue-rotate(199deg) brightness(99%) contrast(101%);">路况';
+
+        // 同步右上角工具按钮及弹窗尺寸/位置，与搜索框保持一致
+        function syncTopTools() {
+          var sb = document.getElementById('searchBox');
+          var btn = document.getElementById('toolsBtn');
+          var cont = document.getElementById('toolsContainer');
+          if (!sb || !btn || !cont) return;
+          var w = sb.offsetWidth;
+          var h = sb.offsetHeight;
+          if (!w || !h) return;
+          btn.style.width = w + 'px';
+          btn.style.height = h + 'px';
+          cont.style.width = w + 'px';
+          cont.style.top = (20 + h + 8) + 'px';
+        }
+        syncTopTools();
+        window.addEventListener('resize', syncTopTools);
+        window.addEventListener('load', syncTopTools);
       });
     </script>
 </body>
