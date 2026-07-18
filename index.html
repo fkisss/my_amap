@@ -7,6 +7,16 @@
     <link rel="icon" href="amap.ico" type="image/x-icon">
     <title>高德专享JSAPI地图</title>
     <style>
+        :root {
+            --primary: #0078ff;
+            --primary-dark: #0056b3;
+            --success: #28a745;
+            --warning: #ff9800;
+            --danger: #FF0000;
+            --text: #333;
+            --muted: #888;
+            --border: #ddd;
+        }
         html, body, #container {
             width: 100%;
             height: 100%;
@@ -48,7 +58,7 @@
         }
         
         #searchBtn {
-            background-color: #0078ff;
+            background-color: var(--primary);
             color: #fff;
             min-width: 56px;
             padding: 7px 0;
@@ -63,7 +73,7 @@
         }
         
         #searchBtn:hover {
-            background-color: #0056b3;
+            background-color: var(--primary-dark);
         }
         
         /* 搜索结果面板样式 */
@@ -225,6 +235,53 @@
         .amap-info-content.amap-info-outer {
           min-width: 216px !important;
         }
+        /* 统一信息窗按钮配色 */
+        .iw-btn {
+            border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; color: #fff;
+        }
+        .iw-btn--from { background: var(--primary); margin-right: 5px; }
+        .iw-btn--to   { background: var(--success); }
+        .iw-btn--fav  { background: var(--warning); margin-left: 5px; }
+        .iw-btn--elev { background: var(--primary); margin-left: 5px; }
+
+        /* 统一工具按钮(卫星/路况/定位) */
+        .map-tool {
+            flex: 1 1 0; width: auto; background: #fff; border: none; color: var(--primary);
+            font-weight: bold; padding: 10px 0; box-shadow: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        .map-tool:first-child { border-radius: 12px 0 0 0; }
+        .map-tool:last-child  { border-radius: 0 12px 0 0; }
+
+        /* 统一收藏面板按钮 */
+        .panel-btn { flex:1; border:none; border-radius:3px; padding:4px 0; font-weight:bold; cursor:pointer; font-size:13px; min-width:0; transition: background-color .3s, color .3s; }
+        .panel-btn--solid { background: var(--primary); color:#fff; }
+        .panel-btn--solid:hover { background: var(--primary-dark); }
+        .panel-btn--outline { background:#fff; color: var(--primary); border:1px solid var(--primary); }
+        .panel-btn--outline:hover { background:#e6f0ff; color: var(--primary-dark); }
+
+        /* 轻量提示 toast */
+        #amapToast {
+            position: fixed; left: 50%; top: 70px; transform: translateX(-50%);
+            z-index: 10010; padding: 10px 18px; border-radius: 6px; color: #fff;
+            font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.2); max-width: 80vw;
+            opacity: 0; transition: opacity .3s ease; pointer-events: none; text-align: center;
+        }
+        #amapToast.info    { background: #333; }
+        #amapToast.warn    { background: var(--warning); }
+        #amapToast.error   { background: var(--danger); }
+        #amapToast.success { background: var(--success); }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            #mainContainer { left: 10px; right: 10px; top: 10px; width: auto; max-width: none; min-width: 0; }
+            #searchBox input { width: auto; min-width: 0; }
+            #toolsContainer { left: 10px; right: 10px; top: 56px; width: auto !important; }
+            .iw-btn { padding: 7px 12px; font-size: 14px; }
+            #favList { max-height: 40vh; }
+            .amap-info-content.amap-info-outer { min-width: 180px !important; }
+        }
         /* 强制工具面板宽度不受外部影响 */
         #toolsContainer {
             width: 320px !important;
@@ -315,8 +372,9 @@
     </button>
     <div id="toolsContainer" style="display:none;position:absolute;right:20px;top:60px;z-index:10001;background:#fff;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);border:1px solid #ddd;overflow:hidden;">
       <div id="mapToolsRow" style="display:flex;gap:0;">
-        <button id="satelliteToggleBtn" style="flex:1 1 0;width:auto;background:#fff;border:none;color:#0078ff;font-weight:bold;border-radius:12px 0 0 0;padding:10px 0;box-shadow:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;border-bottom:1px solid #eee;border-right:1px solid #eee;">卫星</button>
-        <button id="trafficToggleBtn" style="flex:1 1 0;width:auto;background:#fff;border:none;color:#0078ff;font-weight:bold;border-radius:0 12px 0 0;padding:10px 0;box-shadow:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;border-bottom:1px solid #eee;">路况</button>
+        <button id="satelliteToggleBtn" class="map-tool">卫星</button>
+        <button id="trafficToggleBtn" class="map-tool">路况</button>
+        <button id="locateBtn" class="map-tool" title="回到我的位置">定位</button>
       </div>
       <div id="favPanel" style="display:block;background:#fff;border-radius:0 0 12px 12px;box-shadow:none;border:none;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:10px;">
@@ -326,9 +384,9 @@
         <ul id="favList" style="list-style:none;padding:0;margin:0;max-height:220px;overflow-y:auto;"></ul>
         <div id="favEmptyTip" style="color:#aaa;text-align:center;margin-top:10px;display:none;">暂无收藏点</div>
         <div style="margin-top:10px;display:flex;gap:8px;">
-          <button id="favExportBtn" style="flex:1;background:#0078ff;color:#fff;border:none;border-radius:3px;padding:4px 0;font-weight:bold;cursor:pointer;transition:background-color 0.3s ease;font-size:13px;min-width:0;">导出JSON</button>
-          <label for="favImportInput" style="flex:1;background:#fff;color:#0078ff;border:1px solid #0078ff;border-radius:3px;padding:4px 0;font-weight:bold;cursor:pointer;text-align:center;transition:background-color 0.3s ease;font-size:13px;min-width:0;">导入JSON<input id="favImportInput" type="file" accept="application/json" style="display:none;"></label>
-          <button id="favClearAllBtn" style="flex:1;background:#fff;color:#0078ff;border:1px solid #0078ff;border-radius:3px;padding:4px 0;font-weight:bold;cursor:pointer;transition:background-color 0.3s ease;font-size:13px;min-width:0;">全部删除</button>
+          <button id="favExportBtn" class="panel-btn panel-btn--solid">导出JSON</button>
+          <label for="favImportInput" class="panel-btn panel-btn--out-line">导入JSON<input id="favImportInput" type="file" accept="application/json" style="display:none;"></label>
+          <button id="favClearAllBtn" class="panel-btn panel-btn--out-line">全部删除</button>
         </div>
         <!-- 云端同步区 -->
         <div style="display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:8px;border-top:1px dashed #e0e0e0;">
@@ -346,7 +404,7 @@
         }
     </script>
     <!-- 请将 '您的APIKey' 替换为您在高德开放平台获取到的真实API Key -->
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=3b673d3e433dfee8e0ccd475050f2b68&plugin=AMap.Marker,AMap.Driving,AMap.Walking,AMap.Transfer,AMap.Geocoder,AMap.PlaceSearch"></script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=4d3fcfe3d1d890db9be898228864b671&plugin=AMap.Marker,AMap.Driving,AMap.Walking,AMap.Transfer,AMap.Geocoder,AMap.PlaceSearch,AMap.Geolocation"></script>
     <script>
       // 多条路线配置
       var xmlFileList = [
@@ -373,7 +431,7 @@
       var predefinedRoutes = [
       // { start: [103.605399,30.975989], end: [103.918282,33.267688], type: 'car' },
       // { start: [103.605399,30.975989], end: [102.768601,30.978505], type: 'car' },
-      // { start: [103.180543,34.644912], end: [103.195924,34.235838], type: 'car' }
+      { start: [103.180543,34.644912], end: [103.195924,34.235838], type: 'car' }
           // 示例：从一个点到另一个点的驾车路线
           // { start: [103.82935, 36.05942], end: [102.491446, 33.377610], type: 'car' },
           // 示例：另一条步行路线
@@ -794,6 +852,20 @@
             zIndex: 9999 // 设置一个非常高的zIndex，确保我们的自定义InfoWindow总是在最顶部
         }); // 新增：全局共享的信息窗体实例
 
+        // 轻量提示（搜索失败/定位等场景）
+        function showToast(msg, type) {
+            type = type || 'info';
+            var old = document.getElementById('amapToast');
+            if (old) old.remove();
+            var t = document.createElement('div');
+            t.id = 'amapToast';
+            t.className = type;
+            t.textContent = msg;
+            document.body.appendChild(t);
+            requestAnimationFrame(function(){ t.style.opacity = '1'; });
+            setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 320); }, 2600);
+        }
+
         function performSearch() {
             var keyword = searchInput.value.trim();
             if (keyword) {
@@ -873,10 +945,10 @@
                                     <b>${displayTitle}</b><br>
                                     地址: ${poi.address || '暂无地址'}<br>
                                     经纬度: ${lnglat.lng}, ${lnglat.lat}<br>
-                                    <button class="set-nav-btn-info-window" data-type="from" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name||''}" style="background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px; font-size: 12px;">起点</button>
-                                    <button class="set-nav-btn-info-window" data-type="to" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name||''}" style="background-color: #28a745; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">终点</button>
-                                    <button class="fav-add-btn-info-window" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name||''}" data-address="${poi.address||''}" style="background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;">收藏</button>
-                                    <button class=\"elevation-btn-info-window\" data-lng=\"${lnglat.lng}\" data-lat=\"${lnglat.lat}\" style=\"background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;\">海拔</button>
+                                    <button class="set-nav-btn-info-window iw-btn iw-btn--from" data-type="from" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name||''}">起点</button>
+                                    <button class="set-nav-btn-info-window iw-btn iw-btn--to" data-type="to" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name||''}">终点</button>
+                                    <button class="fav-add-btn-info-window iw-btn iw-btn--fav" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name||''}" data-address="${poi.address||''}">收藏</button>
+                                    <button class="elevation-btn-info-window iw-btn iw-btn--elev" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}">海拔</button>
                                 `;
 
                                 sharedInfoWindow.setContent(infoWindowContentDiv); // 设置DOM元素为内容
@@ -938,8 +1010,8 @@
                                     <div style="font-size: 12px; color: #666;">${poi.address || '暂无地址'}</div>
                                 </div>
                                 <div style="display:flex;flex-direction:row;gap:4px;align-items:center;">
-                                    <button class="set-nav-btn" data-type="from" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" style="background-color: #0078ff; color: #fff; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;min-width:32px;">起</button>
-                                    <button class="set-nav-btn" data-type="to" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" style="background-color: #28a745; color: #fff; border: none; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;min-width:32px;">终</button>
+                                    <button class="set-nav-btn iw-btn iw-btn--from" data-type="from" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}">起</button>
+                                    <button class="set-nav-btn iw-btn iw-btn--to" data-type="to" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}">终</button>
                                 </div>
                             `;
                             searchResultsList.appendChild(listItem);
@@ -960,10 +1032,10 @@
                                     <b>${poi.name}</b><br>
                                     地址: ${poi.address || '暂无地址'}<br>
                                     经纬度: ${lnglat.lng}, ${lnglat.lat}<br>
-                                    <button class="set-nav-btn-info-window" data-type="from" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" style="background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px; font-size: 12px;">起点</button>
-                                    <button class="set-nav-btn-info-window" data-type="to" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" style="background-color: #28a745; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;">终点</button>
-                                    <button class="fav-add-btn-info-window" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" data-address="${poi.address||''}" style="background-color: #ff9800; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;">收藏</button>
-                                    <button class=\"elevation-btn-info-window\" data-lng=\"${lnglat.lng}\" data-lat=\"${lnglat.lat}\" style=\"background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;\">海拔</button>
+                                    <button class="set-nav-btn-info-window iw-btn iw-btn--from" data-type="from" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}">起点</button>
+                                    <button class="set-nav-btn-info-window iw-btn iw-btn--to" data-type="to" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}">终点</button>
+                                    <button class="fav-add-btn-info-window iw-btn iw-btn--fav" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}" data-name="${poi.name}" data-address="${poi.address||''}">收藏</button>
+                                    <button class="elevation-btn-info-window iw-btn iw-btn--elev" data-lng="${lnglat.lng}" data-lat="${lnglat.lat}">海拔</button>
                                 `;
 
                                 sharedInfoWindow.setContent(infoWindowContentDiv); // 设置DOM元素为内容
@@ -1010,7 +1082,22 @@
                         adjustPanelsPosition(); // 调整导航面板位置
 
                     } else {
-                        searchResultsList.innerHTML = '<li style="padding: 8px 0; color: #666;">未找到相关位置，请尝试更精确的关键词。</li>';
+                        // 区分「无结果」与「搜索失败(配额/密钥/网络)」
+                        var failMsg;
+                        if (status === 'complete') {
+                            failMsg = '未找到“' + keyword + '”相关位置，请尝试更精确的关键词。';
+                        } else {
+                            var info = (result && result.info) ? result.info : (status || '未知错误');
+                            if (/OVER_LIMIT|10044|DAILY|QUOTA/i.test(info)) {
+                                failMsg = '搜索失败：今日地图额度已用尽，请明日再试或联系站长。';
+                            } else if (/SCODE|USERKEY|INVALID|KEY/i.test(info)) {
+                                failMsg = '搜索失败：地图密钥无效，请联系站长。';
+                            } else {
+                                failMsg = '搜索失败：' + info;
+                            }
+                        }
+                        showToast(failMsg, status === 'complete' ? 'warn' : 'error');
+                        searchResultsList.innerHTML = '<li style="padding: 8px 0; color: #d00;">' + failMsg + '</li>';
                         searchResultsPanel.style.display = 'block';
                         planForm.style.display = 'block'; // 确保导航面板可见
                         adjustPanelsPosition(); // 调整导航面板位置
@@ -1297,10 +1384,10 @@
                 地址: ${f.address||'暂无地址'}<br>
                 经纬度: ${lng}, ${lat}<br>
                 ${remarkHtml}
-                <button class=\"set-nav-btn-info-window\" data-type=\"from\" data-lng=\"${lng}\" data-lat=\"${lat}\" data-name=\"${f.name||''}\" style=\"background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; margin-right: 5px; font-size: 12px;\">起点</button>
-                <button class=\"set-nav-btn-info-window\" data-type=\"to\" data-lng=\"${lng}\" data-lat=\"${lat}\" data-name=\"${f.name||''}\" style=\"background-color: #28a745; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px;\">终点</button>
-                <button class=\"fav-push-btn-info-window\" data-lng=\"${lng}\" data-lat=\"${lat}\" data-name=\"${f.name||''}\" data-address=\"${f.address||''}\" style=\"background-color: #ff9800; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;\">推送</button>
-                <button class=\"elevation-btn-info-window\" data-lng=\"${lng}\" data-lat=\"${lat}\" style=\"background-color: #0078ff; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-left: 5px;\">海拔</button>
+                <button class="set-nav-btn-info-window iw-btn iw-btn--from" data-type="from" data-lng="${lng}" data-lat="${lat}" data-name="${f.name||''}">起点</button>
+                <button class="set-nav-btn-info-window iw-btn iw-btn--to" data-type="to" data-lng="${lng}" data-lat="${lat}" data-name="${f.name||''}">终点</button>
+                <button class="fav-push-btn-info-window iw-btn iw-btn--fav" data-lng="${lng}" data-lat="${lat}" data-name="${f.name||''}" data-address="${f.address||''}">推送</button>
+                <button class="elevation-btn-info-window iw-btn iw-btn--elev" data-lng="${lng}" data-lat="${lat}">海拔</button>
               `;
               sharedInfoWindow.setContent(infoWindowContentDiv);
               sharedInfoWindow.open(map, marker.getPosition());
@@ -2110,6 +2197,26 @@ var favJsonFiles = ['ditu/fav.json'];
           reader.readAsText(file);
           this.value = '';
         };
+        // 「回到我的位置」按钮
+        document.getElementById('locateBtn').onclick = function() {
+          showToast('定位中…', 'info');
+          var geolocation = new AMap.Geolocation({
+            enableHighAccuracy: true,
+            timeout: 10000,
+            GeoLocationFirst: true,
+            maximumAge: 0
+          });
+          geolocation.getCurrentPosition(function(status, result) {
+            if (status === 'complete') {
+              var p = result.position;
+              map.setZoomAndCenter(15, [p.lng, p.lat]);
+              showToast('已定位到你的位置', 'success');
+            } else {
+              showToast('定位失败：' + (result.info || status), 'error');
+            }
+          });
+        };
+
         // 卫星切换按钮逻辑保持不变
         var isSatellite = false;
         document.getElementById('satelliteToggleBtn').onclick = function() {
