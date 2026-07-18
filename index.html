@@ -340,9 +340,9 @@
     <!-- 页面底部中间增加海拔信息显示区 -->
     <div id="elevationInfo" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;background:#fff;border-radius:8px;box-shadow:0 2px 8px #2196f333;padding:8px 24px;font-size:15px;color:#0078ff;display:none;pointer-events:auto;user-select:text;cursor:text;"></div>
     <script type="text/javascript">
-        // 请将 '您复制的"安全密钥"' 替换为您获取到的真实值
+        // 安全密钥已通过 serviceHost 代理隐藏在服务端(KV: amap_scode)，前端不再明文暴露
         window._AMapSecurityConfig = {
-            securityJsCode:'1be04232160e25ebdc98e536461cc88e',
+            serviceHost:'https://my-amap.pages.dev/_AMapService',
         }
     </script>
     <!-- 请将 '您的APIKey' 替换为您在高德开放平台获取到的真实API Key -->
